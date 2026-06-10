@@ -26,9 +26,27 @@ const Menu = () => {
     }
   };
 
-  useEffect(() => {
-    fetchMenuData();
-  }, []);
+ useEffect(() => {
+  API.get('/api/menu')
+    .then((res) => {
+      // 🛡️ SAFETY CHECK: Extract the array safely no matter how the backend formats it
+      let menuArray = [];
+      
+      if (Array.isArray(res.data)) {
+        menuArray = res.data;
+      } else if (res.data && Array.isArray(res.data.menu)) {
+        menuArray = res.data.menu;
+      } else if (res.data && Array.isArray(res.data.data)) {
+        menuArray = res.data.data;
+      }
+
+      setMenuItems(menuArray);
+    })
+    .catch((err) => {
+      console.error("Failed to load menu items:", err);
+      setMenuItems([]); // 🛡️ Force fallback to empty array so .map() never crashes
+    });
+}, []);
 
   useEffect(() => {
     if (selectedItem) {
