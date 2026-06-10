@@ -445,12 +445,12 @@ const Menu = () => {
                   gap: '9px'
                 }}
                 onMouseEnter={(e) => {
-                  mix.currentTarget.style.transform = 'translateY(-3px)';
-                  mix.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
                 }}
                 onMouseLeave={(e) => {
-                  mix.currentTarget.style.transform = 'translateY(0)';
-                  mix.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
                 onClick={() => {
                   const cartItem = {
