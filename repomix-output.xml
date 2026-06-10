@@ -529,39 +529,6 @@ export default defineConfig([
 ])
 </file>
 
-<file path="frontend/index.html">
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/tab_logo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sarab - Restaurant & Cafe</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Nunito:wght@700;800&family=Pacifico&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="/src/assets/css/style.css" />
-    
-    <style>
-      /* Backup safety hooks */
-      body.modal-open {
-        overflow: hidden !important;
-      }
-    </style>
-  </head>
-  <body style="background-color: #fff8f0; margin: 0; padding: 0;">
-    
-    <div id="root"></div>
-
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-</file>
-
 <file path="frontend/package.json">
 {
   "name": "frontend",
@@ -649,7 +616,9 @@ If you are developing a production application, we recommend using TypeScript wi
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL
+  // Combines your live backend domain with the api route path
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}` : 'http://localhost:5000',
+  withCredentials: true
 });
 
 export default API;
@@ -1423,411 +1392,9 @@ const About = () => {
 export default About;
 </file>
 
-<file path="frontend/src/components/AdminDashboard.jsx">
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AdminMenuManager from './AdminMenuManager';
-
-const AdminDashboard = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [activeTab, setActiveTab] = useState('orders');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterService, setFilterService] = useState('All');
-  const [newOrderAlert, setNewOrderAlert] = useState(null);
-  const previousOrdersCountRef = useRef(null);
-
-  const navigate = useNavigate();
-  const token = localStorage.getItem('adminToken');
-  const adminUser = localStorage.getItem('adminUser') || 'Staff';
-
-  const notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav');
-
-  const fetchOrders = async (isFirstLoad = false) => {
-    try {
-      const response = await fetch('http://localhost:5000/api/orders', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.status === 401) {
-        handleLogout();
-        return;
-      }
-      if (!response.ok) throw new Error('API communication block encountered.');
-      const data = await response.json();
-
-      if (!isFirstLoad && previousOrdersCountRef.current !== null && data.length > previousOrdersCountRef.current) {
-        const latestOrder = data[0];
-        setNewOrderAlert(latestOrder);
-        notificationAudio.play().catch(err => console.log("Audio autoplay error: ", err));
-        setTimeout(() => {
-          setNewOrderAlert(null);
-        }, 8000);
-      }
-
-      setOrders(data);
-      previousOrdersCountRef.current = data.length;
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    fetchOrders(true);
-    const interval = setInterval(() => {
-      fetchOrders(false);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [token]);
-
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (response.ok) {
-        setOrders(orders.map(order => order._id === orderId ? { ...order, status: newStatus } : order));
-      }
-    } catch (err) {
-      alert('Network error while updating status.');
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-    navigate('/login');
-  };
-
-  const filteredOrders = orders.filter(order => {
-    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
-    const matchesService = filterService === 'All' || order.customer.serviceType === filterService;
-    const normalizedQuery = searchQuery.toLowerCase().trim();
-    const matchesSearch = normalizedQuery === '' ||
-      order.customer.fullName.toLowerCase().includes(normalizedQuery) ||
-      order.customer.phone.includes(normalizedQuery) ||
-      order.customer.email.toLowerCase().includes(normalizedQuery) ||
-      order._id.toLowerCase().includes(normalizedQuery);
-    return matchesStatus && matchesService && matchesSearch;
-  });
-
-  const totalRevenue = orders
-    .filter(o => o.status !== 'Cancelled')
-    .reduce((acc, curr) => acc + parseFloat(curr.grandTotal), 0);
-
-  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
-
-  const getStatusBadgeStyle = (status) => {
-    switch (status) {
-      case 'Pending': return { background: '#ffc107', color: '#1a1a1a' };
-      case 'Preparing': return { background: '#0dcaf0', color: '#fff' };
-      case 'Completed': return { background: '#198754', color: '#fff' };
-      case 'Cancelled': return { background: '#dc3545', color: '#fff' };
-      default: return { background: '#6c757d', color: '#fff' };
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
-        <p className="mt-3 text-muted fw-bold">Loading administrative controls...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container py-5 text-start position-relative" style={{ background: 'var(--light)', minHeight: '100vh' }}>
-      
-      {/* New Order Alert Toast */}
-      {newOrderAlert && (
-        <div 
-          className="position-fixed top-0 start-50 translate-middle-x mt-4 p-3 rounded shadow-lg d-flex align-items-center gap-3"
-          style={{ 
-            zIndex: 9999, 
-            minWidth: '320px', 
-            maxWidth: '500px', 
-            background: '#1a1a1a',
-            borderLeft: '5px solid #f6a623',
-            borderRadius: '12px',
-            boxShadow: 'var(--shadow-lg)'
-          }}
-        >
-          <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px', background: '#f6a623', color: '#1a1a1a' }}>
-            <i className="fas fa-bell fa-lg fa-spin"></i>
-          </div>
-          <div className="flex-grow-1">
-            <div className="small fw-bold text-uppercase" style={{ color: '#f6a623', letterSpacing: '1px' }}>🛎️ New Incoming Order!</div>
-            <div className="fw-bold small text-white">{newOrderAlert.customer.fullName} placed an order</div>
-            <div className="font-monospace extra-small" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Total Amount: ${newOrderAlert.grandTotal}</div>
-          </div>
-          <button onClick={() => setNewOrderAlert(null)} className="btn-close btn-close-white ms-auto small"></button>
-        </div>
-      )}
-
-      {/* Title Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4 pb-3" style={{ borderBottom: '2px solid var(--primary)' }}>
-        <div>
-          <h2 className="mb-1" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, color: 'var(--dark)' }}>
-            Sarab Admin Console <span className="fs-6" style={{ color: '#666', fontWeight: 'normal' }}>Logged in: {adminUser}</span>
-          </h2>
-          <p className="mb-0" style={{ color: '#666', fontSize: '0.85rem' }}>Monitor active kitchen workflows, lookup user invoices, and modify order lifecycles.</p>
-        </div>
-        <div className="d-flex gap-2">
-          <button 
-            onClick={() => fetchOrders(false)} 
-            className="btn-red py-2 px-3"
-            style={{ fontSize: '0.85rem', padding: '8px 16px' }}
-          >
-            <i className="fas fa-sync-alt me-1"></i> Sync Pipeline
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="btn"
-            style={{ background: '#dc3545', color: '#fff', border: 'none', borderRadius: '50px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }}
-          >
-            <i className="fas fa-sign-out-alt me-1"></i> Exit Session
-          </button>
-        </div>
-      </div>
-
-      {/* Analytics Summary Counter Cards */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-4">
-          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
-            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#666', letterSpacing: '1px' }}>Total System Logs</div>
-            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--dark)' }}>{orders.length}</div>
-          </div>
-        </div>
-        <div className="col-md-4">
-          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
-            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#f6a623', letterSpacing: '1px' }}>Backlog Queue</div>
-            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#f6a623' }}>{pendingOrdersCount}</div>
-          </div>
-        </div>
-        <div className="col-md-4">
-          <div className="p-4 rounded border shadow-sm text-center" style={{ background: 'linear-gradient(135deg, var(--primary), #c01e12)', borderRadius: '16px' }}>
-            <div className="small fw-bold text-uppercase mb-1" style={{ color: 'rgba(255,255,255,0.8)', letterSpacing: '1px' }}>Gross Sales Matrix</div>
-            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff' }}>${totalRevenue.toFixed(2)}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Sub-Tabs Toggle Row */}
-      <div className="mb-4 d-flex gap-4" style={{ borderBottom: '1px solid #e0e0e0' }}>
-        <button 
-          onClick={() => setActiveTab('orders')} 
-          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'orders' ? 'text-primary' : 'text-muted'}`}
-          style={{ 
-            borderRadius: 0,
-            color: activeTab === 'orders' ? 'var(--primary)' : '#666',
-            borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : 'none',
-            fontWeight: 600
-          }}
-        >
-          <i className="fas fa-shopping-cart me-2"></i>Live Incoming Orders
-        </button>
-        <button 
-          onClick={() => setActiveTab('menu')} 
-          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'menu' ? 'text-primary' : 'text-muted'}`}
-          style={{ 
-            borderRadius: 0,
-            color: activeTab === 'menu' ? 'var(--primary)' : '#666',
-            borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : 'none',
-            fontWeight: 600
-          }}
-        >
-          <i className="fas fa-hamburger me-2"></i>Manage Dish Catalog
-        </button>
-      </div>
-
-      {activeTab === 'orders' ? (
-        <>
-          {/* Filter Controls */}
-          <div className="p-4 rounded border shadow-sm mb-4" style={{ background: '#fff', borderRadius: '16px' }}>
-            <h6 className="fw-bold text-uppercase small mb-3" style={{ color: 'var(--dark)' }}>
-              <i className="fas fa-sliders-h me-2" style={{ color: 'var(--primary)' }}></i>Live Queue Index Controls
-            </h6>
-            <div className="row g-3">
-              <div className="col-lg-5 col-md-12">
-                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Dynamic String Lookup</label>
-                <div className="position-relative">
-                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3" style={{ color: '#aaa' }}>
-                    <i className="fas fa-search"></i>
-                  </span>
-                  <input 
-                    type="text" 
-                    className="form-control p-2 ps-5"
-                    style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
-                    placeholder="Search by Customer name, phone digits, or index key..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="col-lg-3 col-sm-6">
-                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Order Status Lifecycle</label>
-                <select 
-                  className="form-select p-2"
-                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
-                  value={filterStatus} 
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="All">All Lifecycles Combined</option>
-                  <option value="Pending">Pending Validation</option>
-                  <option value="Preparing">Kitchen Preparation</option>
-                  <option value="Completed">Completed / Dispatched</option>
-                  <option value="Cancelled">Cancelled Actions</option>
-                </select>
-              </div>
-
-              <div className="col-lg-4 col-sm-6">
-                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Fulfillment Provision Type</label>
-                <select 
-                  className="form-select p-2"
-                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
-                  value={filterService} 
-                  onChange={(e) => setFilterService(e.target.value)}
-                >
-                  <option value="All">All Channels Combined</option>
-                  <option value="delivery">Premium Courier Delivery</option>
-                  <option value="pickup">Self-Collection Pickup</option>
-                  <option value="dinein">Dine-In Table Configurations</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Orders List */}
-          {filteredOrders.length === 0 ? (
-            <div className="text-center py-5 border rounded" style={{ background: '#fff', borderRadius: '16px' }}>
-              <i className="fas fa-filter display-4 mb-3" style={{ color: '#ddd' }}></i>
-              <p className="mb-0 fw-bold" style={{ color: '#666' }}>No records found matching these filter sets.</p>
-              <button 
-                onClick={() => { setSearchQuery(''); setFilterStatus('All'); setFilterService('All'); }} 
-                className="btn btn-link btn-sm mt-2 text-decoration-none"
-                style={{ color: 'var(--primary)' }}
-              >
-                Reset Global Controls
-              </button>
-            </div>
-          ) : (
-            <div className="row g-4">
-              {filteredOrders.map((order) => (
-                <div className="col-12" key={order._id}>
-                  <div className="card shadow-sm border-0 overflow-hidden" style={{ borderRadius: '16px' }}>
-                    <div className="p-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
-                      <div>
-                        <span className="fw-bold me-2" style={{ color: 'var(--dark)' }}>Invoice:</span>
-                        <span className="small font-monospace" style={{ color: '#888' }}>{order._id}</span>
-                        <span className="ms-3 small" style={{ color: '#888' }}>
-                          <i className="far fa-clock me-1"></i> {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <div className="d-flex align-items-center gap-3">
-                        <span 
-                          className="badge px-3 py-2 rounded-pill text-uppercase fw-bold"
-                          style={{ ...getStatusBadgeStyle(order.status), fontSize: '0.7rem' }}
-                        >
-                          {order.status}
-                        </span>
-                        <span className="fs-5 fw-bold" style={{ color: 'var(--primary)' }}>${order.grandTotal}</span>
-                      </div>
-                    </div>
-
-                    <div className="p-4 row g-4" style={{ background: '#fff' }}>
-                      <div className="col-md-4">
-                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Client Specifics</h6>
-                        <div className="fw-bold mb-1" style={{ color: 'var(--dark)' }}>{order.customer.fullName}</div>
-                        <div className="small mb-1" style={{ color: '#888' }}><i className="fas fa-phone me-2"></i>{order.customer.phone}</div>
-                        <div className="small mb-3" style={{ color: '#888' }}><i className="fas fa-envelope me-2"></i>{order.customer.email}</div>
-                        <div className="p-2 rounded small" style={{ background: 'var(--light)', border: '1px solid #f0f0f0' }}>
-                          <span className="text-capitalize fw-bold d-block mb-1" style={{ color: 'var(--dark)' }}>
-                            <i className="fas fa-utensils me-2" style={{ color: 'var(--primary)' }}></i>{order.customer.serviceType}
-                          </span>
-                          <span style={{ color: '#888' }}>{order.customer.details || "No custom fulfillment annotations added."}</span>
-                        </div>
-                      </div>
-
-                      <div className="col-md-5">
-                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Cart Manifest</h6>
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="d-flex justify-content-between mb-2 small">
-                            <span style={{ color: 'var(--dark)' }}>{item.title} <strong style={{ color: 'var(--primary)' }}>x{item.quantity}</strong></span>
-                            <span style={{ color: '#888' }}>${(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="col-md-3 d-flex flex-column justify-content-center gap-2">
-                        <h6 className="text-uppercase small fw-bold text-center mb-2" style={{ color: '#888', letterSpacing: '1px' }}>Workflow Controls</h6>
-                        {order.status === 'Pending' && (
-                          <button 
-                            onClick={() => handleUpdateStatus(order._id, 'Preparing')} 
-                            className="btn py-2 fw-bold"
-                            style={{ background: '#0dcaf0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
-                          >
-                            <i className="fas fa-fire me-2"></i>Accept & Prepare
-                          </button>
-                        )}
-                        {order.status === 'Preparing' && (
-                          <button 
-                            onClick={() => handleUpdateStatus(order._id, 'Completed')} 
-                            className="btn py-2 fw-bold"
-                            style={{ background: '#198754', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
-                          >
-                            <i className="fas fa-check me-2"></i>Mark Complete
-                          </button>
-                        )}
-                        {order.status !== 'Completed' && order.status !== 'Cancelled' && (
-                          <button 
-                            onClick={() => handleUpdateStatus(order._id, 'Cancelled')} 
-                            className="btn py-2 small"
-                            style={{ background: 'transparent', color: '#dc3545', border: '1px solid #dc3545', borderRadius: '12px', fontSize: '0.8rem' }}
-                          >
-                            Cancel Order
-                          </button>
-                        )}
-                        {(order.status === 'Completed' || order.status === 'Cancelled') && (
-                          <div className="text-center small py-3" style={{ color: '#888' }}>
-                            <i className="fas fa-archive me-2"></i>Order Archived
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        <AdminMenuManager />
-      )}
-    </div>
-  );
-};
-
-export default AdminDashboard;
-</file>
-
 <file path="frontend/src/components/AdminMenuManager.jsx">
 import React, { useState, useEffect } from 'react';
+import API from '../api/axios.js';
 
 const AdminMenuManager = () => {
   const [menuItems, setMenuItems] = useState([]);
@@ -1844,13 +1411,11 @@ const AdminMenuManager = () => {
   });
   const [editingId, setEditingId] = useState(null);
 
-  const token = localStorage.getItem('adminToken');
-
   const fetchMenu = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/menu');
-      const data = await response.json();
-      setMenuItems(data);
+      // SWAPPED: Using environment-variable-aware Axios instead of hardcoded URL string
+      const response = await API.get('/api/menu');
+      setMenuItems(response.data);
     } catch (err) {
       console.error('Error fetching menu:', err);
     } finally {
@@ -1879,8 +1444,6 @@ const AdminMenuManager = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    const targetUrl = editingId ? `http://localhost:5000/api/menu/${editingId}` : 'http://localhost:5000/api/menu';
-    const targetMethod = editingId ? 'PUT' : 'POST';
 
     let formattedPrice = formData.price.trim();
     if (!formattedPrice.startsWith('$')) {
@@ -1896,25 +1459,22 @@ const AdminMenuManager = () => {
     };
 
     try {
-      const response = await fetch(targetUrl, {
-        method: targetMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(cleanPayload)
-      });
-
-      if (response.ok) {
-        fetchMenu();
-        resetForm();
-        alert(editingId ? 'Dish updated successfully!' : 'New dish added successfully!');
+      // SWAPPED: Extracted target url settings out of fetch configuration blocks into clean Axios syntax
+      if (editingId) {
+        await API.put(`/api/menu/${editingId}`, cleanPayload);
       } else {
-        const errPayload = await response.json();
-        alert(`Server error: ${errPayload.message}`);
+        await API.post('/api/menu', cleanPayload);
       }
+
+      // Axios automatically routes non-2xx into the catch block; if we're here, it succeeded.
+      fetchMenu();
+      resetForm();
+      alert(editingId ? 'Dish updated successfully!' : 'New dish added successfully!');
     } catch (err) {
-      alert('Error updating menu item.');
+      console.error('Form submission pipeline error context:', err);
+      // Safely access backend-delivered error explanations if available
+      const serverMessage = err.response?.data?.message;
+      alert(serverMessage || 'Error updating menu item.');
     }
   };
 
@@ -1934,12 +1494,11 @@ const AdminMenuManager = () => {
   const handleDelete = async (itemId) => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/menu/${itemId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setMenuItems(menuItems.filter(item => item._id !== itemId));
+      // SWAPPED: Swapping generic options block configuration for Axios method call syntax
+      await API.delete(`/api/menu/${itemId}`);
+      setMenuItems(menuItems.filter(item => item._id !== itemId));
     } catch (err) {
+      console.error('Delete error context:', err);
       alert('Error deleting item.');
     }
   };
@@ -2504,7 +2063,7 @@ export default Categories;
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
-
+import API from '../api/axios.js';
 const Checkout = () => {
   const { cart, cartTotal, clearCart } = useCart();
   const [formData, setFormData] = useState({
@@ -2577,17 +2136,14 @@ const Checkout = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderPayload),
-      });
+      // SWAPPED: Replaced fetch setup with centralized Axios interceptor/instance
+      const response = await API.post('/api/orders', orderPayload);
 
-      const data = await response.json();
+      // Axios bundles your JSON parsed response payload inside response.data
+      const data = response.data;
 
-      if (response.ok) {
+      // Axios returns a successful status context implicitly if it doesn't throw
+      if (response.status === 200 || response.status === 201 || data.success !== false) {
         setOrderSubmitted(true);
         clearCart();
       } else {
@@ -2595,10 +2151,17 @@ const Checkout = () => {
       }
     } catch (err) {
       console.error('Order submission pipeline error context:', err);
-      alert('Failed to establish connection with the backend server. Make sure your local server is running on port 5000!');
+      
+      // Axios stores response structures safely inside err.response
+      const serverMessage = err.response?.data?.message;
+      
+      alert(
+        serverMessage || 
+        'Failed to establish connection with the backend server. Make sure your server is running!'
+      );
     } finally {
       setIsSubmitting(false);
-    }
+    } 
   };
 
   if (orderSubmitted) {
@@ -3541,7 +3104,7 @@ export default Navbar;
 <file path="frontend/src/components/Login.jsx">
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import API from '../api/axios.js';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -3555,15 +3118,13 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      // SWAPPED: Hardcoded fetch replaced with environment-variable-backed Axios instance
+      const response = await API.post('/api/auth/login', { username, password });
 
-      const data = await response.json();
+      // Axios data contains your payload directly if the server responds with a 2xx status code
+      const data = response.data;
 
-      if (response.ok && data.success) {
+      if (data && data.success) {
         localStorage.setItem('adminToken', data.token);
         localStorage.setItem('adminUser', data.username);
         navigate('/admin');
@@ -3571,7 +3132,10 @@ const Login = () => {
         setError(data.message || 'Access Denied. Invalid credentials.');
       }
     } catch (err) {
-      setError('Connection failure with the authorization server.');
+      // Axios handles non-2xx status codes (like 400 or 401) by throwing an error block.
+      // We read the server message safely here, fallback on connection loss.
+      const serverMessage = err.response?.data?.message;
+      setError(serverMessage || 'Connection failure with the authorization server.');
     } finally {
       setLoading(false);
     }
@@ -3703,503 +3267,6 @@ const Login = () => {
 };
 
 export default Login;
-</file>
-
-<file path="frontend/src/components/Menu.jsx">
-import React, { useState, useEffect } from 'react';
-import { useCart } from '../context/CartContext';
-
-const Menu = () => {
-  const [menuData, setMenuData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [portionQty, setPortionQty] = useState(1);
-  
-  const { addToCart } = useCart();
-
-  const fetchMenuData = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/menu');
-      if (response.ok) {
-        const data = await response.json();
-        setMenuData(data);
-      }
-    } catch (err) {
-      console.error('Error fetching menu:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMenuData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedItem) {
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
-    }
-    return () => document.body.classList.remove('modal-open');
-  }, [selectedItem]);
-
-  const filteredItems = activeFilter === 'all' 
-    ? menuData 
-    : menuData.filter(item => item.category === activeFilter);
-
-  const openModal = (item) => {
-    setSelectedItem(item);
-    setPortionQty(1);
-  };
-
-  const parsePrice = (priceStr) => {
-    if (typeof priceStr === 'number') return priceStr;
-    const cleaned = priceStr.replace(/[^0-9.-]/g, '');
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : parsed;
-  };
-
-  if (loading) {
-    return (
-      <div className="py-5 text-center bg-white d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
-        <p className="mt-3 text-muted fw-bold small text-uppercase" style={{ letterSpacing: '1px' }}>Loading Kitchen Catalog...</p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {/* FIXED: Changed id from "menu" to "menu-section" to match navbar */}
-      <section id="menu-section" className="py-5" style={{ background: '#f9f5f0' }}>
-        <div className="container">
-          
-          {/* Header Typography Stacks */}
-          <div className="text-center mb-5" data-aos="fade-up">
-            <span className="slbl" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '1.35rem', color: '#e8281a', display: 'block', marginBottom: '4px' }}>What's Cooking</span>
-            <h2 className="stitle" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', fontWeight: 900, lineHeight: 1.2, marginBottom: '12px' }}>
-              Our Delicious <span style={{ color: '#e8281a' }}>Menu</span>
-            </h2>
-            <div className="sline" style={{ width: '58px', height: '4px', borderRadius: '4px', background: 'linear-gradient(90deg, #e8281a, #f6a623)', margin: '0 auto 12px' }}></div>
-          </div>
-
-          {/* Interactive Navigation Filter Tab Buttons */}
-          <div className="text-center mb-4 flex-wrap d-flex justify-content-center gap-2" data-aos="fade-up">
-            {['all', 'burgers', 'pizza', 'chicken', 'wraps', 'desserts', 'pasta'].map((category) => (
-              <button 
-                key={category}
-                onClick={() => setActiveFilter(category)}
-                style={{
-                  border: activeFilter === category ? '2px solid #e8281a' : '2px solid #e5e5e5',
-                  background: activeFilter === category ? '#e8281a' : '#fff',
-                  color: activeFilter === category ? '#fff' : '#666',
-                  borderRadius: '50px',
-                  padding: '8px 20px',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  margin: '3px',
-                  fontFamily: "'Poppins', sans-serif"
-                }}
-                onMouseEnter={(e) => {
-                  if (activeFilter !== category) {
-                    e.target.style.background = '#e8281a';
-                    e.target.style.color = '#fff';
-                    e.target.style.borderColor = '#e8281a';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (activeFilter !== category) {
-                    e.target.style.background = '#fff';
-                    e.target.style.color = '#666';
-                    e.target.style.borderColor = '#e5e5e5';
-                  }
-                }}
-              >
-                {category.charAt(0).toUpperCase() + category.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Responsive Card Deck Display Grid Array */}
-          <div className="row g-4" id="mgrid">
-            {filteredItems.map((item, idx) => (
-              <div className="col-sm-6 col-lg-4" key={item.id || item._id} data-aos="fade-up" data-aos-delay={idx * 80}>
-                <div 
-                  className="mcard"
-                  onClick={() => openModal(item)}
-                  style={{
-                    background: '#fff',
-                    borderRadius: '18px',
-                    overflow: 'hidden',
-                    transition: 'transform 0.4s ease, box-shadow 0.4s ease',
-                    boxShadow: '0 4px 22px rgba(0, 0, 0, 0.07)',
-                    cursor: 'pointer',
-                    height: '100%'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-9px)';
-                    e.currentTarget.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.13)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 22px rgba(0, 0, 0, 0.07)';
-                  }}
-                >
-                  <div className="mimg" style={{ position: 'relative', overflow: 'hidden', height: '215px', background: '#fef0dc' }}>
-                    <img 
-                      src={item.img} 
-                      alt={item.title} 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.09)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                      onError={(e) => {
-                        // Fixed: Simplified error handling to avoid infinite loop
-                        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
-                      }}
-                    />
-                    {item.badge && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '13px',
-                        left: '13px',
-                        background: item.badgeClass === 'hot' ? '#f6a623' : '#2d6a4f',
-                        color: item.badgeClass === 'hot' ? '#1a1a1a' : '#fff',
-                        borderRadius: '7px',
-                        padding: '3px 11px',
-                        fontSize: '0.7rem',
-                        fontWeight: 700
-                      }}>
-                        <i className="fas fa-star" style={{ marginRight: '4px', fontSize: '0.65rem' }}></i> {item.badge}
-                      </div>
-                    )}
-                    <div className="mhrt" style={{
-                      position: 'absolute',
-                      top: '13px',
-                      right: '13px',
-                      width: '33px',
-                      height: '33px',
-                      borderRadius: '50%',
-                      background: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ccc',
-                      cursor: 'pointer',
-                      transition: '0.3s',
-                      boxShadow: '0 2px 9px rgba(0, 0, 0, 0.1)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = '#e8281a';
-                      e.currentTarget.style.transform = 'scale(1.18)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = '#ccc';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                    onClick={(e) => e.stopPropagation()}>
-                      <i className="far fa-heart"></i>
-                    </div>
-                  </div>
-                  
-                  <div className="mbody" style={{ padding: '18px' }}>
-                    <div className="mcat" style={{ fontSize: '0.7rem', fontWeight: 600, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>
-                      {item.displayCategory || item.category}
-                    </div>
-                    <div className="mtit" style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '5px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
-                      {item.title}
-                    </div>
-                    <div className="mdesc" style={{ fontSize: '0.78rem', color: '#aaa', marginBottom: '13px', lineHeight: 1.5 }}>
-                      {item.shortDesc}
-                    </div>
-                    <div className="mfoot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <div className="mprice" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#e8281a', fontFamily: "'Playfair Display', serif" }}>
-                          {item.price}
-                          {item.oldPrice && <small style={{ fontSize: '0.72rem', fontWeight: 400, color: '#ccc', textDecoration: 'line-through', marginLeft: '5px' }}>{item.oldPrice}</small>}
-                        </div>
-                        <div className="mstars" style={{ fontSize: '0.73rem', color: '#f6a623' }}>
-                          <i className="fas fa-star"></i>
-                          <span style={{ color: '#bbb', fontSize: '.7rem', marginLeft: '4px' }}>({item.reviews || 0})</span>
-                        </div>
-                      </div>
-                      <button 
-                        className="madd" 
-                        title="View Details"
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #e8281a, #c01e12)',
-                          border: 'none',
-                          color: '#fff',
-                          fontSize: '1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'transform 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15) rotate(90deg)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
-                        onClick={(e) => {
-                          e.stopPropagation(); 
-                          openModal(item);
-                        }}
-                      >
-                        <i className="fas fa-plus"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Dynamic Pop-up Details Card Modal Overlay - Same as before, keep it */}
-      {selectedItem && (
-        <div id="menuPop" onClick={() => setSelectedItem(null)} style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.84)',
-          backdropFilter: 'blur(5px)',
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '18px'
-        }}>
-          <div className="mpbox" onClick={(e) => e.stopPropagation()} style={{
-            background: '#fff',
-            borderRadius: '22px',
-            maxWidth: '800px',
-            width: '100%',
-            maxHeight: '88vh',
-            overflowY: 'auto',
-            position: 'relative',
-            display: 'flex',
-            flexWrap: 'wrap'
-          }}>
-            <button className="mpclose" onClick={() => setSelectedItem(null)} style={{
-              position: 'absolute',
-              top: '14px',
-              right: '14px',
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
-              background: '#f2f2f2',
-              border: 'none',
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: '0.3s',
-              zIndex: 2
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#f2f2f2'; e.currentTarget.style.color = '#000'; }}>
-              <i className="fas fa-times"></i>
-            </button>
-            
-            <div className="mpimg" style={{
-              width: '44%',
-              background: '#fef0dc',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '22px 0 0 22px',
-              overflow: 'hidden',
-              minHeight: '400px'
-            }}>
-              <img 
-                src={selectedItem.img} 
-                alt={selectedItem.title} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop'; }}
-              />
-            </div>
-            
-            <div className="mpbody" style={{ width: '56%', padding: '34px 30px' }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: '7px' }}>
-                {selectedItem.displayCategory || selectedItem.category}
-              </div>
-              <div style={{ fontSize: '1.7rem', fontWeight: 900, marginBottom: '9px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
-                {selectedItem.title}
-              </div>
-              
-              <div style={{ color: '#f6a623', fontSize: '0.88rem', marginBottom: '14px' }}>
-                <i className="fas fa-star"></i>
-                <i className="fas fa-star"></i>
-                <i className="fas fa-star"></i>
-                <i className="fas fa-star"></i>
-                <i className="fas fa-star"></i>
-                <span style={{ color: '#bbb', fontSize: '.78rem', marginLeft: '8px' }}>{selectedItem.rating || "5.0"} ({selectedItem.reviews || 0} reviews)</span>
-              </div>
-              
-              <div style={{ fontSize: '0.88rem', color: '#777', lineHeight: 1.8, marginBottom: '18px' }}>
-                {selectedItem.longDesc || selectedItem.shortDesc}
-              </div>
-              
-              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#e8281a', marginBottom: '14px', fontFamily: "'Playfair Display', serif" }}>
-                {selectedItem.price}
-                {selectedItem.oldPrice && <small style={{ fontSize: '0.95rem', color: '#ccc', textDecoration: 'line-through', marginLeft: '7px' }}>{selectedItem.oldPrice}</small>}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.calories || "420"} kcal</div>
-                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Calories</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.prepTime || "15"} min</div>
-                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Prep Time</div>
-                </div>
-                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.rating || "5.0"}/5</div>
-                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Rating</div>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '18px' }}>
-                <button 
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '50%',
-                    border: '2px solid #e8281a',
-                    background: 'transparent',
-                    color: '#e8281a',
-                    fontSize: '1.05rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: '0.3s',
-                    fontWeight: 700
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
-                  onClick={() => portionQty > 1 && setPortionQty(portionQty - 1)}
-                >
-                  -
-                </button>
-                <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1a1a', minWidth: '30px', textAlign: 'center' }}>{portionQty}</span>
-                <button 
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '50%',
-                    border: '2px solid #e8281a',
-                    background: 'transparent',
-                    color: '#e8281a',
-                    fontSize: '1.05rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: '0.3s',
-                    fontWeight: 700
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
-                  onClick={() => setPortionQty(portionQty + 1)}
-                >
-                  +
-                </button>
-                <span style={{ fontSize: '.82rem', color: '#aaa', marginLeft: '9px' }}>portion(s)</span>
-              </div>
-              
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '20px' }}>
-                {(selectedItem.tags || ["Fresh", "Chef's Choice", "Popular"]).map((tag, idx) => (
-                  <span key={idx} style={{ background: 'rgba(246, 166, 35, 0.11)', color: '#1a1a1a', borderRadius: '20px', padding: '3px 11px', fontSize: '0.73rem', fontWeight: 600 }}>
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-              
-              <button 
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #e8281a, #c01e12)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '15px',
-                  fontSize: '0.96rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: "'Poppins', sans-serif",
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '9px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-                onClick={() => {
-                  const cartItem = {
-                    ...selectedItem,
-                    price: parsePrice(selectedItem.price),
-                    id: selectedItem.id || selectedItem._id
-                  };
-                  addToCart(cartItem, portionQty);
-                  setSelectedItem(null);
-                }}
-              >
-                <i className="fas fa-shopping-cart"></i> Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @media (max-width: 991px) {
-          .mpimg {
-            width: 100% !important;
-            border-radius: 22px 22px 0 0 !important;
-            min-height: 240px !important;
-          }
-          .mpbody {
-            width: 100% !important;
-            padding: 22px 18px !important;
-          }
-        }
-        @keyframes modalScaleUp {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-        .mpbox {
-          animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-      `}</style>
-    </>
-  );
-};
-
-export default Menu;
 </file>
 
 <file path="frontend/src/context/CartContext.jsx">
@@ -4639,22 +3706,6 @@ body {
 }
 </file>
 
-<file path="frontend/src/main.jsx">
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { CartProvider } from './context/CartContext.jsx';
-import './index.css';
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <CartProvider>
-      <App />
-    </CartProvider>
-  </React.StrictMode>
-);
-</file>
-
 <file path="frontend/vite.config.js">
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -4681,8 +3732,971 @@ export default defineConfig({
 });
 </file>
 
-<file path="package.json">
+<file path="frontend/index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/tab_logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sarab - Restaurant & Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Nunito:wght@700;800&family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- <link rel="stylesheet" href="/src/assets/css/style.css" /> -->
+    
+    <style>
+      /* Backup safety hooks */
+      body.modal-open {
+        overflow: hidden !important;
+      }
+    </style>
+  </head>
+  <body style="background-color: #fff8f0; margin: 0; padding: 0;">
+    
+    <div id="root"></div>
+
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="frontend/src/components/AdminDashboard.jsx">
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import API from '../api/axios.js';
+import AdminMenuManager from './AdminMenuManager';
+
+const AdminDashboard = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [activeTab, setActiveTab] = useState('orders');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterService, setFilterService] = useState('All');
+  const [newOrderAlert, setNewOrderAlert] = useState(null);
+  const previousOrdersCountRef = useRef(null);
+
+  const navigate = useNavigate();
+  const token = localStorage.getItem('adminToken');
+  const adminUser = localStorage.getItem('adminUser') || 'Staff';
+
+  const notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav');
+
+  const fetchOrders = async (isFirstLoad = false) => {
+    try {
+      const response = await API.get('/api/orders');
+      
+      // DEFENSIVE CHECKS: Extract array safely regardless of backend wrapping structure
+      let dataArray = [];
+      if (Array.isArray(response.data)) {
+        dataArray = response.data;
+      } else if (response.data && Array.isArray(response.data.orders)) {
+        dataArray = response.data.orders;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      }
+
+      if (!isFirstLoad && previousOrdersCountRef.current !== null && dataArray.length > previousOrdersCountRef.current) {
+        const latestOrder = dataArray[0];
+        setNewOrderAlert(latestOrder);
+        notificationAudio.play().catch(err => console.log("Audio autoplay error: ", err));
+        setTimeout(() => {
+          setNewOrderAlert(null);
+        }, 8000);
+      }
+
+      setOrders(dataArray); // Safeguards map against crashes
+      previousOrdersCountRef.current = dataArray.length;
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      if (err.response?.status === 401) {
+        handleLogout();
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchOrders(true);
+    const interval = setInterval(() => {
+      fetchOrders(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      // SWAPPED: Using unified PATCH via Axios configuration syntax instead of raw fetch configuration blocks
+      const response = await API.patch(`/api/orders/${orderId}`, { status: newStatus });
+      
+      if (response.status === 200 || response.status === 204 || response.data) {
+        setOrders(orders.map(order => order._id === orderId ? { ...order, status: newStatus } : order));
+      }
+    } catch (err) {
+      console.error('Workflow modification error context:', err);
+      alert(err.response?.data?.message || 'Network error while updating status.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    navigate('/login');
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
+    const matchesService = filterService === 'All' || order.customer.serviceType === filterService;
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+    const matchesSearch = normalizedQuery === '' ||
+      order.customer.fullName.toLowerCase().includes(normalizedQuery) ||
+      order.customer.phone.includes(normalizedQuery) ||
+      order.customer.email.toLowerCase().includes(normalizedQuery) ||
+      order._id.toLowerCase().includes(normalizedQuery);
+    return matchesStatus && matchesService && matchesSearch;
+  });
+
+  const totalRevenue = orders
+    .filter(o => o.status !== 'Cancelled')
+    .reduce((acc, curr) => acc + parseFloat(curr.grandTotal || 0), 0);
+
+  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case 'Pending': return { background: '#ffc107', color: '#1a1a1a' };
+      case 'Preparing': return { background: '#0dcaf0', color: '#fff' };
+      case 'Completed': return { background: '#198754', color: '#fff' };
+      case 'Cancelled': return { background: '#dc3545', color: '#fff' };
+      default: return { background: '#6c757d', color: '#fff' };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+        <p className="mt-3 text-muted fw-bold">Loading administrative controls...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-5 text-start position-relative" style={{ background: 'var(--light)', minHeight: '100vh' }}>
+      
+      {/* New Order Alert Toast */}
+      {newOrderAlert && (
+        <div 
+          className="position-fixed top-0 start-50 translate-middle-x mt-4 p-3 rounded shadow-lg d-flex align-items-center gap-3"
+          style={{ 
+            zIndex: 9999, 
+            minWidth: '320px', 
+            maxWidth: '500px', 
+            background: '#1a1a1a',
+            borderLeft: '5px solid #f6a623',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-lg)'
+          }}
+        >
+          <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px', background: '#f6a623', color: '#1a1a1a' }}>
+            <i className="fas fa-bell fa-lg fa-spin"></i>
+          </div>
+          <div className="flex-grow-1">
+            <div className="small fw-bold text-uppercase" style={{ color: '#f6a623', letterSpacing: '1px' }}>🛎️ New Incoming Order!</div>
+            <div className="fw-bold small text-white">{newOrderAlert.customer.fullName} placed an order</div>
+            <div className="font-monospace extra-small" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Total Amount: ${newOrderAlert.grandTotal}</div>
+          </div>
+          <button onClick={() => setNewOrderAlert(null)} className="btn-close btn-close-white ms-auto small"></button>
+        </div>
+      )}
+
+      {/* Title Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 pb-3" style={{ borderBottom: '2px solid var(--primary)' }}>
+        <div>
+          <h2 className="mb-1" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, color: 'var(--dark)' }}>
+            Sarab Admin Console <span className="fs-6" style={{ color: '#666', fontWeight: 'normal' }}>Logged in: {adminUser}</span>
+          </h2>
+          <p className="mb-0" style={{ color: '#666', fontSize: '0.85rem' }}>Monitor active kitchen workflows, lookup user invoices, and modify order lifecycles.</p>
+        </div>
+        <div className="d-flex gap-2">
+          <button 
+            onClick={() => fetchOrders(false)} 
+            className="btn-red py-2 px-3"
+            style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+          >
+            <i className="fas fa-sync-alt me-1"></i> Sync Pipeline
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="btn"
+            style={{ background: '#dc3545', color: '#fff', border: 'none', borderRadius: '50px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }}
+          >
+            <i className="fas fa-sign-out-alt me-1"></i> Exit Session
+          </button>
+        </div>
+      </div>
+
+      {/* Analytics Summary Counter Cards */}
+      <div className="row g-4 mb-4">
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#666', letterSpacing: '1px' }}>Total System Logs</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--dark)' }}>{orders.length}</div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#f6a623', letterSpacing: '1px' }}>Backlog Queue</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#f6a623' }}>{pendingOrdersCount}</div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: 'linear-gradient(135deg, var(--primary), #c01e12)', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: 'rgba(255,255,255,0.8)', letterSpacing: '1px' }}>Gross Sales Matrix</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff' }}>${totalRevenue.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Sub-Tabs Toggle Row */}
+      <div className="mb-4 d-flex gap-4" style={{ borderBottom: '1px solid #e0e0e0' }}>
+        <button 
+          onClick={() => setActiveTab('orders')} 
+          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'orders' ? 'text-primary' : 'text-muted'}`}
+          style={{ 
+            borderRadius: 0,
+            color: activeTab === 'orders' ? 'var(--primary)' : '#666',
+            borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : 'none',
+            fontWeight: 600
+          }}
+        >
+          <i className="fas fa-shopping-cart me-2"></i>Live Incoming Orders
+        </button>
+        <button 
+          onClick={() => setActiveTab('menu')} 
+          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'menu' ? 'text-primary' : 'text-muted'}`}
+          style={{ 
+            borderRadius: 0,
+            color: activeTab === 'menu' ? 'var(--primary)' : '#666',
+            borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : 'none',
+            fontWeight: 600
+          }}
+        >
+          <i className="fas fa-hamburger me-2"></i>Manage Dish Catalog
+        </button>
+      </div>
+
+      {activeTab === 'orders' ? (
+        <>
+          {/* Filter Controls */}
+          <div className="p-4 rounded border shadow-sm mb-4" style={{ background: '#fff', borderRadius: '16px' }}>
+            <h6 className="fw-bold text-uppercase small mb-3" style={{ color: 'var(--dark)' }}>
+              <i className="fas fa-sliders-h me-2" style={{ color: 'var(--primary)' }}></i>Live Queue Index Controls
+            </h6>
+            <div className="row g-3">
+              <div className="col-lg-5 col-md-12">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Dynamic String Lookup</label>
+                <div className="position-relative">
+                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3" style={{ color: '#aaa' }}>
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <input 
+                    type="text" 
+                    className="form-control p-2 ps-5"
+                    style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                    placeholder="Search by Customer name, phone digits, or index key..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-sm-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Order Status Lifecycle</label>
+                <select 
+                  className="form-select p-2"
+                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                  value={filterStatus} 
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="All">All Lifecycles Combined</option>
+                  <option value="Pending">Pending Validation</option>
+                  <option value="Preparing">Kitchen Preparation</option>
+                  <option value="Completed">Completed / Dispatched</option>
+                  <option value="Cancelled">Cancelled Actions</option>
+                </select>
+              </div>
+
+              <div className="col-lg-4 col-sm-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Fulfillment Provision Type</label>
+                <select 
+                  className="form-select p-2"
+                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                  value={filterService} 
+                  onChange={(e) => setFilterService(e.target.value)}
+                >
+                  <option value="All">All Channels Combined</option>
+                  <option value="delivery">Premium Courier Delivery</option>
+                  <option value="pickup">Self-Collection Pickup</option>
+                  <option value="dinein">Dine-In Table Configurations</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Orders List */}
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-5 border rounded" style={{ background: '#fff', borderRadius: '16px' }}>
+              <i className="fas fa-filter display-4 mb-3" style={{ color: '#ddd' }}></i>
+              <p className="mb-0 fw-bold" style={{ color: '#666' }}>No records found matching these filter sets.</p>
+              <button 
+                onClick={() => { setSearchQuery(''); setFilterStatus('All'); setFilterService('All'); }} 
+                className="btn btn-link btn-sm mt-2 text-decoration-none"
+                style={{ color: 'var(--primary)' }}
+              >
+                Reset Global Controls
+              </button>
+            </div>
+          ) : (
+            <div className="row g-4">
+              {filteredOrders.map((order) => (
+                <div className="col-12" key={order._id}>
+                  <div className="card shadow-sm border-0 overflow-hidden" style={{ borderRadius: '16px' }}>
+                    <div className="p-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+                      <div>
+                        <span className="fw-bold me-2" style={{ color: 'var(--dark)' }}>Invoice:</span>
+                        <span className="small font-monospace" style={{ color: '#888' }}>{order._id}</span>
+                        <span className="ms-3 small" style={{ color: '#888' }}>
+                          <i className="far fa-clock me-1"></i> {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="d-flex align-items-center gap-3">
+                        <span 
+                          className="badge px-3 py-2 rounded-pill text-uppercase fw-bold"
+                          style={{ ...getStatusBadgeStyle(order.status), fontSize: '0.7rem' }}
+                        >
+                          {order.status}
+                        </span>
+                        <span className="fs-5 fw-bold" style={{ color: 'var(--primary)' }}>${order.grandTotal}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 row g-4" style={{ background: '#fff' }}>
+                      <div className="col-md-4">
+                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Client Specifics</h6>
+                        <div className="fw-bold mb-1" style={{ color: 'var(--dark)' }}>{order.customer.fullName}</div>
+                        <div className="small mb-1" style={{ color: '#888' }}><i className="fas fa-phone me-2"></i>{order.customer.phone}</div>
+                        <div className="small mb-3" style={{ color: '#888' }}><i className="fas fa-envelope me-2"></i>{order.customer.email}</div>
+                        <div className="p-2 rounded small" style={{ background: 'var(--light)', border: '1px solid #f0f0f0' }}>
+                          <span className="text-capitalize fw-bold d-block mb-1" style={{ color: 'var(--dark)' }}>
+                            <i className="fas fa-utensils me-2" style={{ color: 'var(--primary)' }}></i>{order.customer.serviceType}
+                          </span>
+                          <span style={{ color: '#888' }}>{order.customer.details || "No custom fulfillment annotations added."}</span>
+                        </div>
+                      </div>
+
+                      <div className="col-md-5">
+                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Cart Manifest</h6>
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="d-flex justify-content-between mb-2 small">
+                            <span style={{ color: 'var(--dark)' }}>{item.title} <strong style={{ color: 'var(--primary)' }}>x{item.quantity}</strong></span>
+                            <span style={{ color: '#888' }}>${(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="col-md-3 d-flex flex-column justify-content-center gap-2">
+                        <h6 className="text-uppercase small fw-bold text-center mb-2" style={{ color: '#888', letterSpacing: '1px' }}>Workflow Controls</h6>
+                        {order.status === 'Pending' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Preparing')} 
+                            className="btn py-2 fw-bold"
+                            style={{ background: '#0dcaf0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
+                          >
+                            <i className="fas fa-fire me-2"></i>Accept & Prepare
+                          </button>
+                        )}
+                        {order.status === 'Preparing' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Completed')} 
+                            className="btn py-2 fw-bold"
+                            style={{ background: '#198754', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
+                          >
+                            <i className="fas fa-check me-2"></i>Mark Complete
+                          </button>
+                        )}
+                        {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Cancelled')} 
+                            className="btn py-2 small"
+                            style={{ background: 'transparent', color: '#dc3545', border: '1px solid #dc3545', borderRadius: '12px', fontSize: '0.8rem' }}
+                          >
+                            Cancel Order
+                          </button>
+                        )}
+                        {(order.status === 'Completed' || order.status === 'Cancelled') && (
+                          <div className="text-center small py-3" style={{ color: '#888' }}>
+                            <i className="fas fa-archive me-2"></i>Order Archived
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <AdminMenuManager />
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboard;
+</file>
+
+<file path="frontend/src/main.jsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import { CartProvider } from './context/CartContext.jsx';
+import './index.css';
+import './assets/css/style.css'; // ✨ ADD THIS LINE HERE Matrix
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <CartProvider>
+      <App />
+    </CartProvider>
+  </React.StrictMode>
+);
+</file>
+
+<file path="package.json">
+{
+  "name": "sarab-restaurant-root",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+</file>
+
+<file path="frontend/src/components/Menu.jsx">
+import React, { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
+import API from '../api/axios.js';
+
+const Menu = () => {
+  const [menuData, setMenuData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [portionQty, setPortionQty] = useState(1);
+  
+  const { addToCart } = useCart();
+
+  // Consolidated Single Unified Fetch with Array Type-Safety Guards
+  useEffect(() => {
+    API.get('/api/menu')
+      .then((res) => {
+        let menuArray = [];
+        
+        // 🛡️ SAFETY CHECK: Extract the array safely no matter how the backend formats it
+        if (Array.isArray(res.data)) {
+          menuArray = res.data;
+        } else if (res.data && Array.isArray(res.data.menu)) {
+          menuArray = res.data.menu;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          menuArray = res.data.data;
+        }
+
+        setMenuData(menuArray); // FIXED: Correctly targets menuData state variable
+      })
+      .catch((err) => {
+        console.error("Failed to load menu items:", err);
+        setMenuData([]); // 🛡️ Force fallback to empty array so .map() loop never crashes
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (selectedItem) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [selectedItem]);
+
+  const filteredItems = activeFilter === 'all' 
+    ? menuData 
+    : menuData.filter(item => item.category === activeFilter);
+
+  const openModal = (item) => {
+    setSelectedItem(item);
+    setPortionQty(1);
+  };
+
+  const parsePrice = (priceStr) => {
+    if (typeof priceStr === 'number') return priceStr;
+    const cleaned = priceStr.replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  if (loading) {
+    return (
+      <div className="py-5 text-center bg-white d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+        <p className="mt-3 text-muted fw-bold small text-uppercase" style={{ letterSpacing: '1px' }}>Loading Kitchen Catalog...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* FIXED: Changed id from "menu" to "menu-section" to match navbar */}
+      <section id="menu-section" className="py-5" style={{ background: '#f9f5f0' }}>
+        <div className="container">
+          
+          {/* Header Typography Stacks */}
+          <div className="text-center mb-5" data-aos="fade-up">
+            <span className="slbl" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '1.35rem', color: '#e8281a', display: 'block', marginBottom: '4px' }}>What's Cooking</span>
+            <h2 className="stitle" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', fontWeight: 900, lineHeight: 1.2, marginBottom: '12px' }}>
+              Our Delicious <span style={{ color: '#e8281a' }}>Menu</span>
+            </h2>
+            <div className="sline" style={{ width: '58px', height: '4px', borderRadius: '4px', background: 'linear-gradient(90deg, #e8281a, #f6a623)', margin: '0 auto 12px' }}></div>
+          </div>
+
+          {/* Interactive Navigation Filter Tab Buttons */}
+          <div className="text-center mb-4 flex-wrap d-flex justify-content-center gap-2" data-aos="fade-up">
+            {['all', 'burgers', 'pizza', 'chicken', 'wraps', 'desserts', 'pasta'].map((category) => (
+              <button 
+                key={category}
+                onClick={() => setActiveFilter(category)}
+                style={{
+                  border: activeFilter === category ? '2px solid #e8281a' : '2px solid #e5e5e5',
+                  background: activeFilter === category ? '#e8281a' : '#fff',
+                  color: activeFilter === category ? '#fff' : '#666',
+                  borderRadius: '50px',
+                  padding: '8px 20px',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  margin: '3px',
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  if (activeFilter !== category) {
+                    e.target.style.background = '#e8281a';
+                    e.target.style.color = '#fff';
+                    e.target.style.borderColor = '#e8281a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeFilter !== category) {
+                    e.target.style.background = '#fff';
+                    e.target.style.color = '#666';
+                    e.target.style.borderColor = '#e5e5e5';
+                  }
+                }}
+              >
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Responsive Card Deck Display Grid Array */}
+          <div className="row g-4" id="mgrid">
+            {filteredItems.map((item, idx) => (
+              <div className="col-sm-6 col-lg-4" key={item.id || item._id} data-aos="fade-up" data-aos-delay={idx * 80}>
+                <div 
+                  className="mcard"
+                  onClick={() => openModal(item)}
+                  style={{
+                    background: '#fff',
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    transition: 'transform 0.4s ease, box-shadow 0.4s ease',
+                    boxShadow: '0 4px 22px rgba(0, 0, 0, 0.07)',
+                    cursor: 'pointer',
+                    height: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-9px)';
+                    e.currentTarget.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.13)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 22px rgba(0, 0, 0, 0.07)';
+                  }}
+                >
+                  <div className="mimg" style={{ position: 'relative', overflow: 'hidden', height: '215px', background: '#fef0dc' }}>
+                    <img 
+                      src={item.img} 
+                      alt={item.title} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.09)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
+                      }}
+                    />
+                    {item.badge && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '13px',
+                        left: '13px',
+                        background: item.badgeClass === 'hot' ? '#f6a623' : '#2d6a4f',
+                        color: item.badgeClass === 'hot' ? '#1a1a1a' : '#fff',
+                        borderRadius: '7px',
+                        padding: '3px 11px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700
+                      }}>
+                        <i className="fas fa-star" style={{ marginRight: '4px', fontSize: '0.65rem' }}></i> {item.badge}
+                      </div>
+                    )}
+                    <div className="mhrt" style={{
+                      position: 'absolute',
+                      top: '13px',
+                      right: '13px',
+                      width: '33px',
+                      height: '33px',
+                      borderRadius: '50%',
+                      background: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ccc',
+                      cursor: 'pointer',
+                      transition: '0.3s',
+                      boxShadow: '0 2px 9px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#e8281a';
+                      e.currentTarget.style.transform = 'scale(1.18)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = '#ccc';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    onClick={(e) => e.stopPropagation()}>
+                      <i className="far fa-heart"></i>
+                    </div>
+                  </div>
+                  
+                  <div className="mbody" style={{ padding: '18px' }}>
+                    <div className="mcat" style={{ fontSize: '0.7rem', fontWeight: 600, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>
+                      {item.displayCategory || item.category}
+                    </div>
+                    <div className="mtit" style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '5px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
+                      {item.title}
+                    </div>
+                    <div className="mdesc" style={{ fontSize: '0.78rem', color: '#aaa', marginBottom: '13px', lineHeight: 1.5 }}>
+                      {item.shortDesc}
+                    </div>
+                    <div className="mfoot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div className="mprice" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#e8281a', fontFamily: "'Playfair Display', serif" }}>
+                          {item.price}
+                          {item.oldPrice && <small style={{ fontSize: '0.72rem', fontWeight: 400, color: '#ccc', textDecoration: 'line-through', marginLeft: '5px' }}>{item.oldPrice}</small>}
+                        </div>
+                        <div className="mstars" style={{ fontSize: '0.73rem', color: '#f6a623' }}>
+                          <i className="fas fa-star"></i>
+                          <span style={{ color: '#bbb', fontSize: '.7rem', marginLeft: '4px' }}>({item.reviews || 0})</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="madd" 
+                        title="View Details"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #e8281a, #c01e12)',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'transform 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15) rotate(90deg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
+                        onClick={(e) => {
+                          e.stopPropagation(); 
+                          openModal(item);
+                        }}
+                      >
+                        <i className="fas fa-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Dynamic Pop-up Details Card Modal Overlay */}
+      {selectedItem && (
+        <div id="menuPop" onClick={() => setSelectedItem(null)} style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.84)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '18px'
+        }}>
+          <div className="mpbox" onClick={(e) => e.stopPropagation()} style={{
+            background: '#fff',
+            borderRadius: '22px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '88vh',
+            overflowY: 'auto',
+            position: 'relative',
+            display: 'flex',
+            flexWrap: 'wrap'
+          }}>
+            <button className="mpclose" onClick={() => setSelectedItem(null)} style={{
+              position: 'absolute',
+              top: '14px',
+              right: '14px',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: '#f2f2f2',
+              border: 'none',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: '0.3s',
+              zIndex: 2
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f2f2f2'; e.currentTarget.style.color = '#000'; }}>
+              <i className="fas fa-times"></i>
+            </button>
+            
+            <div className="mpimg" style={{
+              width: '44%',
+              background: '#fef0dc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '22px 0 0 22px',
+              overflow: 'hidden',
+              minHeight: '400px'
+            }}>
+              <img 
+                src={selectedItem.img} 
+                alt={selectedItem.title} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop'; }}
+              />
+            </div>
+            
+            <div className="mpbody" style={{ width: '56%', padding: '34px 30px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: '7px' }}>
+                {selectedItem.displayCategory || selectedItem.category}
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, marginBottom: '9px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
+                {selectedItem.title}
+              </div>
+              
+              <div style={{ color: '#f6a623', fontSize: '0.88rem', marginBottom: '14px' }}>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <span style={{ color: '#bbb', fontSize: '.78rem', marginLeft: '8px' }}>{selectedItem.rating || "5.0"} ({selectedItem.reviews || 0} reviews)</span>
+              </div>
+              
+              <div style={{ fontSize: '0.88rem', color: '#777', lineHeight: 1.8, marginBottom: '18px' }}>
+                {selectedItem.longDesc || selectedItem.shortDesc}
+              </div>
+              
+              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#e8281a', marginBottom: '14px', fontFamily: "'Playfair Display', serif" }}>
+                {selectedItem.price}
+                {selectedItem.oldPrice && <small style={{ fontSize: '0.95rem', color: '#ccc', textDecoration: 'line-through', marginLeft: '7px' }}>{selectedItem.oldPrice}</small>}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.calories || "420"} kcal</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Calories</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.prepTime || "15"} min</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Prep Time</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.rating || "5.0"}/5</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Rating</div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '18px' }}>
+                <button 
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    border: '2px solid #e8281a',
+                    background: 'transparent',
+                    color: '#e8281a',
+                    fontSize: '1.05rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: '0.3s',
+                    fontWeight: 700
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
+                  onClick={() => portionQty > 1 && setPortionQty(portionQty - 1)}
+                >
+                  -
+                </button>
+                <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1a1a', minWidth: '30px', textAlign: 'center' }}>{portionQty}</span>
+                <button 
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    border: '2px solid #e8281a',
+                    background: 'transparent',
+                    color: '#e8281a',
+                    fontSize: '1.05rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: '0.3s',
+                    fontWeight: 700
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
+                  onClick={() => setPortionQty(portionQty + 1)}
+                >
+                  +
+                </button>
+                <span style={{ fontSize: '.82rem', color: '#aaa', marginLeft: '9px' }}>portion(s)</span>
+              </div>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '20px' }}>
+                {(selectedItem.tags || ["Fresh", "Chef's Choice", "Popular"]).map((tag, idx) => (
+                  <span key={idx} style={{ background: 'rgba(246, 166, 35, 0.11)', color: '#1a1a1a', borderRadius: '20px', padding: '3px 11px', fontSize: '0.73rem', fontWeight: 600 }}>
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+              
+              <button 
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #e8281a, #c01e12)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  fontSize: '0.96rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: "'Poppins', sans-serif",
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '9px'
+                }}
+                onMouseEnter={(e) => {
+                  mix.currentTarget.style.transform = 'translateY(-3px)';
+                  mix.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
+                }}
+                onMouseLeave={(e) => {
+                  mix.currentTarget.style.transform = 'translateY(0)';
+                  mix.currentTarget.style.boxShadow = 'none';
+                }}
+                onClick={() => {
+                  const cartItem = {
+                    ...selectedItem,
+                    price: parsePrice(selectedItem.price),
+                    id: selectedItem.id || selectedItem._id
+                  };
+                  addToCart(cartItem, portionQty);
+                  setSelectedItem(null);
+                }}
+              >
+                <i className="fas fa-shopping-cart"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width: 991px) {
+          .mpimg {
+            width: 100% !important;
+            border-radius: 22px 22px 0 0 !important;
+            min-height: 240px !important;
+          }
+          .mpbody {
+            width: 100% !important;
+            padding: 22px 18px !important;
+          }
+        }
+        @keyframes modalScaleUp {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .mpbox {
+          animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default Menu;
 </file>
 
 </files>

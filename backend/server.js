@@ -14,8 +14,12 @@ dns.setServers(["1.1.1.1", "1.0.0.1"]);
 const app = express();
 
 // Middleware parameters
+// Update the CORS middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://sarab-86ft.onrender.com'  // Add your frontend URL explicitly
+  ],
   credentials: true
 }));
 app.use(express.json()); // Essential body parsing parser rule
