@@ -13,7 +13,7 @@ const Menu = () => {
 
   // Consolidated Single Unified Fetch with Array Type-Safety Guards
   useEffect(() => {
-    API.get('/api/menu')
+    API.get('/menu')
       .then((res) => {
         let menuArray = [];
         
