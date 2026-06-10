@@ -1,0 +1,297 @@
+:root {
+  --primary: #E15B64;
+  --secondary: #f6a623;
+  --dark: #1a1a1a;
+  --green: #2d6a4f;
+  --cream: #fff8f0;
+  --cream2: #fef0dc;
+  --light: #f9f5f0;
+  --shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   Structural Mechanics and Layout Standards
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  color: #444;
+  background: #ffffff;
+  overflow-x: hidden;
+}
+
+body.modal-open {
+  overflow: hidden !important;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: "Playfair Display", serif;
+  color: var(--dark);
+}
+
+a {
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+img {
+  max-width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+}
+
+/* ==========================================================================
+   High-Fidelity Interaction Animations
+   ========================================================================== */
+.transition {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.transform-hover {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mcard {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mcard:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow) !important;
+}
+
+.mcard:hover .transform-hover {
+  transform: scale(1.06);
+}
+
+.mhrt {
+  transition: 0.3s ease;
+}
+
+.mhrt:hover {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+
+/* ==========================================================================
+   Clean Centered Production Modal System
+   ========================================================================== */
+#menuPop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  z-index: 99999 !important;
+  backdrop-filter: blur(4px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.mpbox {
+  background-color: #ffffff !important;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  position: relative !important;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex !important;
+  animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.mpclose {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  z-index: 110 !important;
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff !important;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.mpclose:hover {
+  background-color: #f8f9fa !important;
+  transform: scale(1.05);
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Global Button & Heading Alignment Classes
+   ========================================================================== */
+.btn-red {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-red:hover {
+  background-color: #c44a52 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(225, 91, 100, 0.35);
+}
+
+.slbl {
+  letter-spacing: 2px;
+  font-size: 0.9rem;
+}
+
+.stitle span {
+  color: var(--primary);
+}
+
+/* Filter Navigation Links */
+.filtbtn {
+  transition: all 0.3s ease;
+}
+
+.filtbtn:hover {
+  background-color: #e2e6ea !important;
+}
+
+.filtbtn.active:hover {
+  background-color: var(--primary) !important;
+}
+/* ==========================================================================
+   Premium Modal Image Aspect Ratio Fixes
+   ========================================================================== */
+#menuPop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 10050 !important;
+  backdrop-filter: blur(5px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.mpbox {
+  background-color: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  position: relative !important;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden; /* Keeps the image corners rounded */
+  display: flex !important;
+}
+
+/* Enforces a solid structural track for desktop viewports */
+.mimg-container {
+  min-height: 100%;
+  align-self: stretch;
+}
+
+#mpImg {
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* ==========================================================================
+   Step 10: Modal Component Isolation Override Controls
+   ========================================================================== */
+#menuPop .mimg-container,
+#menuPop #mpImg {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+#menuPop #mpPrice,
+#menuPop .display-6 {
+  animation: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+/* ==========================================================================
+   Responsive Adaptability (Mobile Viewports)
+   ========================================================================== */
+@media (max-width: 767px) {
+  .mpbox {
+    flex-direction: column !important;
+    overflow-y: auto !important; /* Permits interior element scrolling on small screens */
+    max-height: 85vh;
+  }
+  
+  .mimg-container {
+    width: 100% !important;
+    height: 250px !important;
+    min-height: 250px !important;
+    flex: none !important;
+  }
+
+  #mpImg {
+    height: 100% !important;
+    width: 100% !important;
+  }
+}
+/* ==========================================================================
+   Responsive Adaptability Shifts (Mobile)
+   ========================================================================== */
+@media (max-width: 767px) {
+  .mpbox {
+    flex-direction: column !important;
+    max-height: 92vh;
+  }
+  
+  .mpbox > .col-md-5 {
+    min-height: 240px !important;
+    height: 240px !important;
+    width: 100% !important;
+  }
+  
+  .mpbox #mpImg {
+    position: relative !important;
+    height: 100% !important;
+    width: 100% !important;
+    object-fit: cover !important;
+  }
+}

@@ -1,0 +1,4688 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+backend/config/authMiddleware.js
+backend/config/db.js
+backend/models/MenuItem.js
+backend/models/Order.js
+backend/models/User.js
+backend/package.json
+backend/routes/authRoutes.js
+backend/routes/menuRoutes.js
+backend/routes/orderRoutes.js
+backend/server.js
+frontend/eslint.config.js
+frontend/index.html
+frontend/package.json
+frontend/public/chefs/1.jpg
+frontend/public/chefs/2.jpg
+frontend/public/chefs/3.jpg
+frontend/public/chefs/4.jpg
+frontend/public/chefs/i_5.webp
+frontend/public/favicon.svg
+frontend/public/icons.svg
+frontend/public/main_images/about1.jpg
+frontend/public/main_images/about2.jpg
+frontend/public/main_images/banner-img.jpg
+frontend/public/main_images/off-img.jpg
+frontend/public/menu/1.jpg
+frontend/public/menu/2.jpg
+frontend/public/menu/3.jpg
+frontend/public/menu/4.jpg
+frontend/public/menu/5.jpg
+frontend/public/menu/6.jpg
+frontend/public/tab_logo.png
+frontend/README.md
+frontend/src/api/axios.js
+frontend/src/App.css
+frontend/src/App.jsx
+frontend/src/assets/css/style.css
+frontend/src/assets/img/blog/1.jpg
+frontend/src/assets/img/blog/2.jpg
+frontend/src/assets/img/blog/3.jpg
+frontend/src/assets/img/category/1.jpg
+frontend/src/assets/img/category/2.jpg
+frontend/src/assets/img/category/3.jpg
+frontend/src/assets/img/category/4.jpg
+frontend/src/assets/img/category/5.jpg
+frontend/src/assets/img/category/6.jpg
+frontend/src/assets/img/portfolio/work1.jpg
+frontend/src/assets/img/portfolio/work2.jpg
+frontend/src/assets/img/portfolio/work3.jpg
+frontend/src/assets/img/portfolio/work4.jpg
+frontend/src/assets/img/portfolio/work5.jpg
+frontend/src/assets/img/testimonial/1.jpg
+frontend/src/assets/img/testimonial/2.jpg
+frontend/src/assets/img/testimonial/3.jpg
+frontend/src/assets/img/testimonial/4.jpg
+frontend/src/components/About.jsx
+frontend/src/components/AdminDashboard.jsx
+frontend/src/components/AdminMenuManager.jsx
+frontend/src/components/CartDrawer.jsx
+frontend/src/components/Categories.jsx
+frontend/src/components/Checkout.jsx
+frontend/src/components/Footer.jsx
+frontend/src/components/Hero.jsx
+frontend/src/components/HistoryHours.jsx
+frontend/src/components/layout/Navbar.jsx
+frontend/src/components/Login.jsx
+frontend/src/components/Menu.jsx
+frontend/src/context/CartContext.jsx
+frontend/src/index.css
+frontend/src/main.jsx
+frontend/vite.config.js
+package.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+node_modules/
+backend/.env
+frontend/.env
+dist/
+.env
+</file>
+
+<file path="backend/config/authMiddleware.js">
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+
+const protectAdmin = async (req, res, next) => {
+  let token;
+
+  // Check if token exists in Authorization header ('Bearer <token>')
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Isolate token from prefix string
+      token = req.headers.authorization.split(' ')[1];
+
+      // Decode and verify the signature token integrity
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Attach user record context to the request pipeline (excluding password string)
+      req.user = await User.findById(decoded.id).select('-password');
+      
+      return next(); // Token valid, advance to the route controller
+    } catch (error) {
+      return res.status(401).json({ message: 'Authorization verification failed. Token invalid.' });
+    }
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized. Access token is missing.' });
+  }
+};
+
+export default protectAdmin;
+</file>
+
+<file path="backend/config/db.js">
+import mongoose from 'mongoose';
+
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+    });
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`❌ Database error: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+export default connectDB;
+</file>
+
+<file path="backend/models/MenuItem.js">
+import mongoose from 'mongoose';
+
+const menuItemSchema = new mongoose.Schema({
+  id: { type: Number, required: true }, // Add this to keep your frontend mapping happy!
+  title: { type: String, required: true },
+  category: { type: String, required: true },
+  displayCategory: { type: String, required: true },
+  price: { type: String, required: true }, 
+  shortDesc: { type: String, required: true },
+  longDesc: { type: String },
+  img: { type: String, required: true }
+}, { timestamps: true });
+
+export default mongoose.model('MenuItem', menuItemSchema);
+</file>
+
+<file path="backend/models/Order.js">
+import mongoose from 'mongoose';
+
+const orderSchema = new mongoose.Schema({
+  customer: {
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, required: true },
+    serviceType: { type: String, required: true, enum: ['delivery', 'pickup', 'dinein'] },
+    details: { type: String }
+  },
+  items: [
+    {
+      title: { type: String, required: true },
+      price: { type: Number, required: true }, // Must be a clean number
+      quantity: { type: Number, required: true }
+    }
+  ],
+  grandTotal: { type: Number, required: true }, // Must be a clean number
+  status: { type: String, default: 'Pending', enum: ['Pending', 'Preparing', 'Completed', 'Cancelled'] }
+}, { timestamps: true });
+
+export default mongoose.model('Order', orderSchema);
+</file>
+
+<file path="backend/models/User.js">
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true }
+}, { timestamps: true });
+
+// Pre-save middleware hook to encrypt plain passwords automatically
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// Helper instance method to check password matches on login
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+export default mongoose.model('User', userSchema);
+</file>
+
+<file path="backend/package.json">
+{
+  "name": "sarab-backend",
+  "version": "1.0.0",
+  "description": "REST API Server for Sarab Restaurant",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
+</file>
+
+<file path="backend/routes/authRoutes.js">
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+
+const router = express.Router();
+
+// POST /api/auth/login - Match credentials and issue safe JWT token
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+
+    if (user && (await user.matchPassword(password))) {
+      // Issue token containing user database reference ID expiring in 1 day
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+      
+      res.json({
+        success: true,
+        token,
+        username: user.username
+      });
+    } else {
+      res.status(401).json({ message: 'Invalid administrative username or password credentials.' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Login processing error.', error: error.message });
+  }
+});
+
+// POST /api/auth/seed-admin - Seed default staff user account (Run once)
+router.post('/seed-admin', async (req, res) => {
+  try {
+    const userExists = await User.findOne({ username: 'admin' });
+    if (userExists) return res.json({ message: 'Admin account already prepared.' });
+
+    const defaultAdmin = new User({
+      username: 'admin',
+      password: 'adminpassword123' // This will be auto-hashed by our User model pre-save hook!
+    });
+
+    await defaultAdmin.save();
+    res.status(201).json({ success: true, message: 'Admin user account created! (User: admin / Pass: adminpassword123)' });
+  } catch (error) {
+    res.status(500).json({ message: 'Admin seeding failed.', error: error.message });
+  }
+});
+
+export default router;
+</file>
+
+<file path="backend/routes/menuRoutes.js">
+import express from 'express';
+import MenuItem from '../models/MenuItem.js';
+import protectAdmin from '../config/authMiddleware.js'; // Import your JWT protector
+
+const router = express.Router();
+
+// 1. PUBLIC: GET all menu records from database
+router.get('/', async (req, res) => {
+  try {
+    const items = await MenuItem.find({});
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: 'Server context menu data fetch error.' });
+  }
+});
+
+// 2. PROTECTED: POST /api/menu - Add a brand new dish with auto-incremented ID
+router.post('/', protectAdmin, async (req, res) => {
+  try {
+    // Look up the highest existing 'id' value in the collection
+    const highestItem = await MenuItem.findOne().sort({ id: -1 });
+    
+    // If items exist, increment that ID by 1; otherwise, start at 1
+    const nextId = highestItem && highestItem.id ? highestItem.id + 1 : 1;
+
+    // Attach the sequential numeric id to the payload body
+    const extendedBody = {
+      ...req.body,
+      id: nextId
+    };
+
+    const newDish = new MenuItem(extendedBody);
+    const savedDish = await newDish.save();
+    res.status(201).json({ success: true, item: savedDish });
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to create menu item.', error: error.message });
+  }
+});
+
+// 3. PROTECTED: PUT /api/menu/:id - Edit an existing dish's price, text, description, or tags
+router.put('/:id', protectAdmin, async (req, res) => {
+  try {
+    const updatedDish = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedDish) return res.status(404).json({ message: 'Menu item target not found.' });
+    res.json({ success: true, item: updatedDish });
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update menu item.', error: error.message });
+  }
+});
+
+// 4. PROTECTED: DELETE /api/menu/:id - Remove a dish from the system permanently
+router.delete('/:id', protectAdmin, async (react, res) => {
+  try {
+    const deletedDish = await MenuItem.findByIdAndDelete(req.params.id);
+    if (!deletedDish) return res.status(404).json({ message: 'Menu item target not found.' });
+    res.json({ success: true, message: 'Dish successfully deleted from catalog matrix.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to execute item deletion error context.' });
+  }
+});
+
+// Seed data endpoint (Kept for fallback emergencies)
+router.post('/seed', async (req, res) => {
+  try {
+    await MenuItem.deleteMany({});
+    // Sample items here... (kept clean for space)
+    res.status(201).json({ success: true, message: "Database seeded successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: "Seeding failed" });
+  }
+});
+
+export default router;
+</file>
+
+<file path="backend/routes/orderRoutes.js">
+import express from 'express';
+import Order from '../models/Order.js';
+import protectAdmin from '../config/authMiddleware.js'; // Import your route protector
+
+const router = express.Router();
+
+// 1. PUBLIC: POST /api/orders - Anyone can place an order
+router.post('/', async (req, res) => {
+  try {
+    const newOrder = new Order(req.body);
+    const savedOrder = await newOrder.save();
+    res.status(201).json({ success: true, orderId: savedOrder._id });
+  } catch (error) {
+    res.status(400).json({ message: 'Order formatting pipeline parsing failure.', error: error.message });
+  }
+});
+
+// 2. PROTECTED: GET /api/orders - Only logged-in admin can fetch the logs queue
+router.get('/', protectAdmin, async (req, res) => {
+  try {
+    const orders = await Order.find({}).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Server order log fetch failure.' });
+  }
+});
+
+// 3. PROTECTED: PATCH /api/orders/:id - Only logged-in admin can modify a status
+router.patch('/:id', protectAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updatedOrder = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!updatedOrder) return res.status(404).json({ message: 'Order reference not found.' });
+    res.json({ success: true, updatedOrder });
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update order status state.' });
+  }
+});
+
+export default router;
+</file>
+
+<file path="backend/server.js">
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import menuRoutes from './routes/menuRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+dotenv.config();
+
+
+import dns from "node:dns/promises";   
+dns.setServers(["1.1.1.1", "1.0.0.1"]); 
+// Spin up express container instance 
+const app = express();
+
+// Middleware parameters
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(express.json()); // Essential body parsing parser rule
+
+// Connection state execution
+connectDB();
+
+// Explicit routing layer bindings
+app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/auth', authRoutes);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Sarab Restaurant API Server actively serving on port: ${PORT}`));
+</file>
+
+<file path="frontend/eslint.config.js">
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      globals: globals.browser,
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+  },
+])
+</file>
+
+<file path="frontend/index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/tab_logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sarab - Restaurant & Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Nunito:wght@700;800&family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/src/assets/css/style.css" />
+    
+    <style>
+      /* Backup safety hooks */
+      body.modal-open {
+        overflow: hidden !important;
+      }
+    </style>
+  </head>
+  <body style="background-color: #fff8f0; margin: 0; padding: 0;">
+    
+    <div id="root"></div>
+
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.17.0",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.17.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "vite": "^8.0.12"
+  }
+}
+</file>
+
+<file path="frontend/public/favicon.svg">
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="46" fill="none" viewBox="0 0 48 46"><path fill="#863bff" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z" style="fill:#863bff;fill:color(display-p3 .5252 .23 1);fill-opacity:1"/><mask id="a" width="48" height="46" x="0" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M25.842 44.938c-.664.844-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.183c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.498 0-3.579-1.842-3.579H1.133c-.92 0-1.456-1.04-.92-1.787L9.91.473c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.578 1.842 3.578h11.377c.943 0 1.473 1.088.89 1.832L25.843 44.94z" style="fill:#000;fill-opacity:1"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#ede6ff" rx="5.508" ry="14.704" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -4.47 31.516)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#ede6ff" rx="10.399" ry="29.851" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -39.328 7.883)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#7e14ff" rx="5.508" ry="30.487" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.814 -25.913 -14.639)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#7e14ff" rx="5.508" ry="30.599" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.814 -32.644 -3.334)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#7e14ff" rx="5.508" ry="30.599" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="matrix(.00324 1 1 -.00324 -34.34 30.47)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#ede6ff" rx="14.072" ry="22.078" style="fill:#ede6ff;fill:color(display-p3 .9275 .9033 1);fill-opacity:1" transform="rotate(93.35 24.506 48.493)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#7e14ff" rx="3.47" ry="21.501" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.009 28.708 47.59)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#7e14ff" rx="3.47" ry="21.501" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(89.009 28.708 47.59)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx=".387" cy="8.972" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(39.51 .387 8.972)"/></g><g filter="url(#k)"><ellipse cx="47.523" cy="-6.092" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 47.523 -6.092)"/></g><g filter="url(#l)"><ellipse cx="41.412" cy="6.333" fill="#47bfff" rx="5.971" ry="9.665" style="fill:#47bfff;fill:color(display-p3 .2799 .748 1);fill-opacity:1" transform="rotate(37.892 41.412 6.333)"/></g><g filter="url(#m)"><ellipse cx="-1.879" cy="38.332" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 -1.88 38.332)"/></g><g filter="url(#n)"><ellipse cx="-1.879" cy="38.332" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 -1.88 38.332)"/></g><g filter="url(#o)"><ellipse cx="35.651" cy="29.907" fill="#7e14ff" rx="4.407" ry="29.108" style="fill:#7e14ff;fill:color(display-p3 .4922 .0767 1);fill-opacity:1" transform="rotate(37.892 35.651 29.907)"/></g><g filter="url(#p)"><ellipse cx="38.418" cy="32.4" fill="#47bfff" rx="5.971" ry="15.297" style="fill:#47bfff;fill:color(display-p3 .2799 .748 1);fill-opacity:1" transform="rotate(37.892 38.418 32.4)"/></g></g><defs><filter id="b" width="60.045" height="41.654" x="-19.77" y="16.149" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-54.613" y="-7.533" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-49.64" y="2.03" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-45.045" y="20.029" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-43.513" y="21.178" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="15.756" y="-17.901" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="23.548" y="2.284" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="23.548" y="2.284" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-27.636" y="-22.853" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="20.116" y="-38.415" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="24.641" y="-11.323" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-29.286" y="6.009" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-29.286" y="6.009" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="8.244" y="-2.416" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="18.713" y="10.588" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17158" stdDeviation="4.596"/></filter></defs></svg>
+</file>
+
+<file path="frontend/public/icons.svg">
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="bluesky-icon" viewBox="0 0 16 17">
+    <g clip-path="url(#bluesky-clip)"><path fill="#08060d" d="M7.75 7.735c-.693-1.348-2.58-3.86-4.334-5.097-1.68-1.187-2.32-.981-2.74-.79C.188 2.065.1 2.812.1 3.251s.241 3.602.398 4.13c.52 1.744 2.367 2.333 4.07 2.145-2.495.37-4.71 1.278-1.805 4.512 3.196 3.309 4.38-.71 4.987-2.746.608 2.036 1.307 5.91 4.93 2.746 2.72-2.746.747-4.143-1.747-4.512 1.702.189 3.55-.4 4.07-2.145.156-.528.397-3.691.397-4.13s-.088-1.186-.575-1.406c-.42-.19-1.06-.395-2.741.79-1.755 1.24-3.64 3.752-4.334 5.099"/></g>
+    <defs><clipPath id="bluesky-clip"><path fill="#fff" d="M.1.85h15.3v15.3H.1z"/></clipPath></defs>
+  </symbol>
+  <symbol id="discord-icon" viewBox="0 0 20 19">
+    <path fill="#08060d" d="M16.224 3.768a14.5 14.5 0 0 0-3.67-1.153c-.158.286-.343.67-.47.976a13.5 13.5 0 0 0-4.067 0c-.128-.306-.317-.69-.476-.976A14.4 14.4 0 0 0 3.868 3.77C1.546 7.28.916 10.703 1.231 14.077a14.7 14.7 0 0 0 4.5 2.306q.545-.748.965-1.587a9.5 9.5 0 0 1-1.518-.74q.191-.14.372-.293c2.927 1.369 6.107 1.369 8.999 0q.183.152.372.294-.723.437-1.52.74.418.838.963 1.588a14.6 14.6 0 0 0 4.504-2.308c.37-3.911-.63-7.302-2.644-10.309m-9.13 8.234c-.878 0-1.599-.82-1.599-1.82 0-.998.705-1.82 1.6-1.82.894 0 1.614.82 1.599 1.82.001 1-.705 1.82-1.6 1.82m5.91 0c-.878 0-1.599-.82-1.599-1.82 0-.998.705-1.82 1.6-1.82.893 0 1.614.82 1.599 1.82 0 1-.706 1.82-1.6 1.82"/>
+  </symbol>
+  <symbol id="documentation-icon" viewBox="0 0 21 20">
+    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="m15.5 13.333 1.533 1.322c.645.555.967.833.967 1.178s-.322.623-.967 1.179L15.5 18.333m-3.333-5-1.534 1.322c-.644.555-.966.833-.966 1.178s.322.623.966 1.179l1.534 1.321"/>
+    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M17.167 10.836v-4.32c0-1.41 0-2.117-.224-2.68-.359-.906-1.118-1.621-2.08-1.96-.599-.21-1.349-.21-2.848-.21-2.623 0-3.935 0-4.983.369-1.684.591-3.013 1.842-3.641 3.428C3 6.449 3 7.684 3 10.154v2.122c0 2.558 0 3.838.706 4.726q.306.383.713.671c.76.536 1.79.64 3.581.66"/>
+    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M3 10a2.78 2.78 0 0 1 2.778-2.778c.555 0 1.209.097 1.748-.047.48-.129.854-.503.982-.982.145-.54.048-1.194.048-1.749a2.78 2.78 0 0 1 2.777-2.777"/>
+  </symbol>
+  <symbol id="github-icon" viewBox="0 0 19 19">
+    <path fill="#08060d" fill-rule="evenodd" d="M9.356 1.85C5.05 1.85 1.57 5.356 1.57 9.694a7.84 7.84 0 0 0 5.324 7.44c.387.079.528-.168.528-.376 0-.182-.013-.805-.013-1.454-2.165.467-2.616-.935-2.616-.935-.349-.91-.864-1.143-.864-1.143-.71-.48.051-.48.051-.48.787.051 1.2.805 1.2.805.695 1.194 1.817.857 2.268.649.064-.507.27-.857.49-1.052-1.728-.182-3.545-.857-3.545-3.87 0-.857.31-1.558.8-2.104-.078-.195-.349-1 .077-2.078 0 0 .657-.208 2.14.805a7.5 7.5 0 0 1 1.946-.26c.657 0 1.328.092 1.946.26 1.483-1.013 2.14-.805 2.14-.805.426 1.078.155 1.883.078 2.078.502.546.799 1.247.799 2.104 0 3.013-1.818 3.675-3.558 3.87.284.247.528.714.528 1.454 0 1.052-.012 1.896-.012 2.156 0 .208.142.455.528.377a7.84 7.84 0 0 0 5.324-7.441c.013-4.338-3.48-7.844-7.773-7.844" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="social-icon" viewBox="0 0 20 20">
+    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M12.5 6.667a4.167 4.167 0 1 0-8.334 0 4.167 4.167 0 0 0 8.334 0"/>
+    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M2.5 16.667a5.833 5.833 0 0 1 8.75-5.053m3.837.474.513 1.035c.07.144.257.282.414.309l.93.155c.596.1.736.536.307.965l-.723.73a.64.64 0 0 0-.152.531l.207.903c.164.715-.213.991-.84.618l-.872-.52a.63.63 0 0 0-.577 0l-.872.52c-.624.373-1.003.094-.84-.618l.207-.903a.64.64 0 0 0-.152-.532l-.723-.729c-.426-.43-.289-.864.306-.964l.93-.156a.64.64 0 0 0 .412-.31l.513-1.034c.28-.562.735-.562 1.012 0"/>
+  </symbol>
+  <symbol id="x-icon" viewBox="0 0 19 19">
+    <path fill="#08060d" fill-rule="evenodd" d="M1.893 1.98c.052.072 1.245 1.769 2.653 3.77l2.892 4.114c.183.261.333.48.333.486s-.068.089-.152.183l-.522.593-.765.867-3.597 4.087c-.375.426-.734.834-.798.905a1 1 0 0 0-.118.148c0 .01.236.017.664.017h.663l.729-.83c.4-.457.796-.906.879-.999a692 692 0 0 0 1.794-2.038c.034-.037.301-.34.594-.675l.551-.624.345-.392a7 7 0 0 1 .34-.374c.006 0 .93 1.306 2.052 2.903l2.084 2.965.045.063h2.275c1.87 0 2.273-.003 2.266-.021-.008-.02-1.098-1.572-3.894-5.547-2.013-2.862-2.28-3.246-2.273-3.266.008-.019.282-.332 2.085-2.38l2-2.274 1.567-1.782c.022-.028-.016-.03-.65-.03h-.674l-.3.342a871 871 0 0 1-1.782 2.025c-.067.075-.405.458-.75.852a100 100 0 0 1-.803.91c-.148.172-.299.344-.99 1.127-.304.343-.32.358-.345.327-.015-.019-.904-1.282-1.976-2.808L6.365 1.85H1.8zm1.782.91 8.078 11.294c.772 1.08 1.413 1.973 1.425 1.984.016.017.241.02 1.05.017l1.03-.004-2.694-3.766L7.796 5.75 5.722 2.852l-1.039-.004-1.039-.004z" clip-rule="evenodd"/>
+  </symbol>
+</svg>
+</file>
+
+<file path="frontend/README.md">
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+</file>
+
+<file path="frontend/src/api/axios.js">
+import axios from 'axios';
+
+const API = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL
+});
+
+export default API;
+</file>
+
+<file path="frontend/src/App.css">
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .framework,
+  .vite {
+    position: absolute;
+  }
+
+  .framework {
+    z-index: 1;
+    top: 34px;
+    height: 28px;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+      scale(1.4);
+  }
+
+  .vite {
+    z-index: 0;
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+      scale(0.8);
+  }
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  & > div {
+    flex: 1 1 0;
+    padding: 32px;
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  .logo {
+    height: 18px;
+  }
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px);
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border);
+  }
+  &::after {
+    right: 0;
+    border-right-color: var(--border);
+  }
+}
+</file>
+
+<file path="frontend/src/App.jsx">
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Navbar from './components/layout/Navbar';
+import Hero from './components/Hero';
+import Categories from './components/Categories';
+import About from './components/About';
+import Menu from './components/Menu'; 
+import CartDrawer from './components/CartDrawer'; 
+import Checkout from './components/Checkout'; 
+import AdminDashboard from './components/AdminDashboard';
+import Login from './components/Login';
+import Footer from './components/Footer';
+import HistoryHours from './components/HistoryHours';
+
+const Home = () => {
+  return (
+    <div className="fade-in-component">
+      <Hero />
+      <Categories />
+      <About />
+      <Menu />
+      <HistoryHours />
+    </div>
+  );
+};
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('adminToken');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+function App() {
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  return (
+    <Router>
+      <div style={{ display: 'block', width: '100%', minHeight: '100vh', backgroundColor: '#fff8f0', position: 'relative' }}>
+        
+        <Navbar onCartClick={() => setIsCartOpen(true)} />
+        <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+        {/* FIXED: Changed main tag background to match theme */}
+        <main style={{ display: 'block', width: '100%', paddingTop: '75px', backgroundColor: '#fff8f0' }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/login" element={<Login />} /> 
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+</file>
+
+<file path="frontend/src/assets/css/style.css">
+:root {
+  --primary: #E15B64;
+  --secondary: #f6a623;
+  --dark: #1a1a1a;
+  --green: #2d6a4f;
+  --cream: #fff8f0;
+  --cream2: #fef0dc;
+  --light: #f9f5f0;
+  --shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================================================
+   Structural Mechanics and Layout Standards
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  color: #444;
+  background: #ffffff;
+  overflow-x: hidden;
+}
+
+body.modal-open {
+  overflow: hidden !important;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: "Playfair Display", serif;
+  color: var(--dark);
+}
+
+a {
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+img {
+  max-width: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 10px;
+}
+
+/* ==========================================================================
+   High-Fidelity Interaction Animations
+   ========================================================================== */
+.transition {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.transform-hover {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mcard {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mcard:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow) !important;
+}
+
+.mcard:hover .transform-hover {
+  transform: scale(1.06);
+}
+
+.mhrt {
+  transition: 0.3s ease;
+}
+
+.mhrt:hover {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+}
+
+/* ==========================================================================
+   Clean Centered Production Modal System
+   ========================================================================== */
+#menuPop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  z-index: 99999 !important;
+  backdrop-filter: blur(4px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.mpbox {
+  background-color: #ffffff !important;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  position: relative !important;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex !important;
+  animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.mpclose {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  z-index: 110 !important;
+  width: 40px;
+  height: 40px;
+  background-color: #ffffff !important;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+}
+
+.mpclose:hover {
+  background-color: #f8f9fa !important;
+  transform: scale(1.05);
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Global Button & Heading Alignment Classes
+   ========================================================================== */
+.btn-red {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-red:hover {
+  background-color: #c44a52 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(225, 91, 100, 0.35);
+}
+
+.slbl {
+  letter-spacing: 2px;
+  font-size: 0.9rem;
+}
+
+.stitle span {
+  color: var(--primary);
+}
+
+/* Filter Navigation Links */
+.filtbtn {
+  transition: all 0.3s ease;
+}
+
+.filtbtn:hover {
+  background-color: #e2e6ea !important;
+}
+
+.filtbtn.active:hover {
+  background-color: var(--primary) !important;
+}
+/* ==========================================================================
+   Premium Modal Image Aspect Ratio Fixes
+   ========================================================================== */
+#menuPop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 10050 !important;
+  backdrop-filter: blur(5px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+}
+
+.mpbox {
+  background-color: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  position: relative !important;
+  max-width: 850px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden; /* Keeps the image corners rounded */
+  display: flex !important;
+}
+
+/* Enforces a solid structural track for desktop viewports */
+.mimg-container {
+  min-height: 100%;
+  align-self: stretch;
+}
+
+#mpImg {
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* ==========================================================================
+   Step 10: Modal Component Isolation Override Controls
+   ========================================================================== */
+#menuPop .mimg-container,
+#menuPop #mpImg {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+#menuPop #mpPrice,
+#menuPop .display-6 {
+  animation: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+/* ==========================================================================
+   Responsive Adaptability (Mobile Viewports)
+   ========================================================================== */
+@media (max-width: 767px) {
+  .mpbox {
+    flex-direction: column !important;
+    overflow-y: auto !important; /* Permits interior element scrolling on small screens */
+    max-height: 85vh;
+  }
+  
+  .mimg-container {
+    width: 100% !important;
+    height: 250px !important;
+    min-height: 250px !important;
+    flex: none !important;
+  }
+
+  #mpImg {
+    height: 100% !important;
+    width: 100% !important;
+  }
+}
+/* ==========================================================================
+   Responsive Adaptability Shifts (Mobile)
+   ========================================================================== */
+@media (max-width: 767px) {
+  .mpbox {
+    flex-direction: column !important;
+    max-height: 92vh;
+  }
+  
+  .mpbox > .col-md-5 {
+    min-height: 240px !important;
+    height: 240px !important;
+    width: 100% !important;
+  }
+  
+  .mpbox #mpImg {
+    position: relative !important;
+    height: 100% !important;
+    width: 100% !important;
+    object-fit: cover !important;
+  }
+}
+</file>
+
+<file path="frontend/src/components/About.jsx">
+import React from "react";
+
+const About = () => {
+  return (
+    <div className="py-5" id="about-section" style={{ background: '#fff8f0', width: '100%' }}>
+      <div className="container" style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 15px' }}>
+        <div className="row g-5 align-items-center">
+
+          {/* LEFT IMAGE GRID - IMPROVED LAYOUT */}
+          <div className="col-lg-6">
+            <div className="row g-3">
+              <div className="col-6 text-start">
+                <div style={{
+                  overflow: 'hidden',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow)',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow)';
+                }}>
+                  <img
+                    className="img-fluid rounded w-100"
+                    src="/main_images/about1.jpg"
+                    alt="Restaurant Interior"
+                    style={{ transition: 'transform 0.5s ease', width: '100%', height: '250px', objectFit: 'cover' }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </div>
+              </div>
+
+              <div className="col-6 text-start">
+                <div style={{
+                  overflow: 'hidden',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow)',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  marginTop: '25%'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow)';
+                }}>
+                  <img
+                    className="img-fluid rounded w-100"
+                    src="/main_images/about2.jpg"
+                    alt="Delicious Dish"
+                    style={{ transition: 'transform 0.5s ease', width: '100%', height: '200px', objectFit: 'cover' }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </div>
+              </div>
+
+              <div className="col-6 text-end">
+                <div style={{
+                  overflow: 'hidden',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow)',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow)';
+                }}>
+                  <img
+                    className="img-fluid rounded w-100"
+                    src="/chefs/2.jpg"
+                    alt="Location"
+                    style={{ transition: 'transform 0.5s ease', width: '100%', height: '180px', objectFit: 'cover' }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </div>
+              </div>
+
+              <div className="col-6 text-end">
+                <div style={{
+                  overflow: 'hidden',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--shadow)',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-5px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow)';
+                }}>
+                  <img
+                    className="img-fluid rounded w-100"
+                    src="/chefs/i_5.webp"
+                    alt="Fine Dining"
+                    style={{ transition: 'transform 0.5s ease', width: '100%', height: '250px', objectFit: 'cover' }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT CONTENT */}
+          <div className="col-lg-6">
+            <div data-aos="fade-left">
+              <span className="slbl" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '1.35rem', color: '#e8281a', display: 'block', marginBottom: '4px' }}>Our Story</span>
+              <h2 className="stitle" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', fontWeight: 900, lineHeight: 1.2, marginBottom: '12px', textAlign: 'left' }}>
+                We Invite You to Visit<br />Our <span style={{ color: '#e8281a' }}>Food Restaurant</span>
+              </h2>
+              <div className="sline" style={{ width: '58px', height: '4px', borderRadius: '4px', background: 'linear-gradient(90deg, #e8281a, #f6a623)', margin: '0 0 12px 0' }}></div>
+              
+              <p className="mb-4" style={{ color: '#666', fontSize: '0.93rem', lineHeight: 1.8 }}>
+                Founded in 2012, Sarab began as a small corner joint with a big dream - to serve food that brings people together. Today we're proud to serve thousands of happy customers every week with the same passion that started it all.
+              </p>
+
+              {/* FEATURE BLOCKS */}
+              <div className="mb-4">
+                <div className="d-flex gap-3 mb-3" style={{ alignItems: 'flex-start' }}>
+                  <div style={{ width: '46px', height: '46px', borderRadius: '11px', background: 'rgba(232, 40, 26, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e8281a', fontSize: '1.15rem', flexShrink: 0, transition: '0.3s' }}>
+                    <i className="fas fa-leaf"></i>
+                  </div>
+                  <div>
+                    <h6 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px', fontFamily: "'Poppins', sans-serif" }}>100% Fresh Ingredients</h6>
+                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0, lineHeight: 1.6 }}>We source locally and sustainably. Every ingredient is hand-picked daily for maximum freshness.</p>
+                  </div>
+                </div>
+
+                <div className="d-flex gap-3 mb-3" style={{ alignItems: 'flex-start' }}>
+                  <div style={{ width: '46px', height: '46px', borderRadius: '11px', background: 'rgba(246, 166, 35, 0.11)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f6a623', fontSize: '1.15rem', flexShrink: 0, transition: '0.3s' }}>
+                    <i className="fas fa-award"></i>
+                  </div>
+                  <div>
+                    <h6 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px', fontFamily: "'Poppins', sans-serif" }}>Award-Winning Recipes</h6>
+                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0, lineHeight: 1.6 }}>Our signature recipes have won national culinary awards 5 years in a row.</p>
+                  </div>
+                </div>
+
+                <div className="d-flex gap-3 mb-3" style={{ alignItems: 'flex-start' }}>
+                  <div style={{ width: '46px', height: '46px', borderRadius: '11px', background: 'rgba(45, 106, 79, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2d6a4f', fontSize: '1.15rem', flexShrink: 0, transition: '0.3s' }}>
+                    <i className="fas fa-shipping-fast"></i>
+                  </div>
+                  <div>
+                    <h6 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '2px', fontFamily: "'Poppins', sans-serif" }}>Lightning-Fast Delivery</h6>
+                    <p style={{ fontSize: '0.8rem', color: '#888', margin: 0, lineHeight: 1.6 }}>Order online and get hot, fresh food at your door in under 25 minutes, guaranteed.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const menu = document.getElementById("menu-section");
+                  if (menu) {
+                    window.scrollTo({ top: menu.offsetTop - 100, behavior: "smooth" });
+                  }
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #e8281a, #c01e12)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '50px',
+                  padding: '14px 32px',
+                  fontWeight: 600,
+                  fontSize: '0.93rem',
+                  boxShadow: '0 8px 24px rgba(232, 40, 26, 0.35)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '9px',
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 14px 34px rgba(232, 40, 26, 0.45)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(232, 40, 26, 0.35)';
+                }}
+              >
+                <i className="fas fa-book-open"></i> View Full Menu
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default About;
+</file>
+
+<file path="frontend/src/components/AdminDashboard.jsx">
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AdminMenuManager from './AdminMenuManager';
+
+const AdminDashboard = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [activeTab, setActiveTab] = useState('orders');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterService, setFilterService] = useState('All');
+  const [newOrderAlert, setNewOrderAlert] = useState(null);
+  const previousOrdersCountRef = useRef(null);
+
+  const navigate = useNavigate();
+  const token = localStorage.getItem('adminToken');
+  const adminUser = localStorage.getItem('adminUser') || 'Staff';
+
+  const notificationAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav');
+
+  const fetchOrders = async (isFirstLoad = false) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+      if (!response.ok) throw new Error('API communication block encountered.');
+      const data = await response.json();
+
+      if (!isFirstLoad && previousOrdersCountRef.current !== null && data.length > previousOrdersCountRef.current) {
+        const latestOrder = data[0];
+        setNewOrderAlert(latestOrder);
+        notificationAudio.play().catch(err => console.log("Audio autoplay error: ", err));
+        setTimeout(() => {
+          setNewOrderAlert(null);
+        }, 8000);
+      }
+
+      setOrders(data);
+      previousOrdersCountRef.current = data.length;
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchOrders(true);
+    const interval = setInterval(() => {
+      fetchOrders(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (response.ok) {
+        setOrders(orders.map(order => order._id === orderId ? { ...order, status: newStatus } : order));
+      }
+    } catch (err) {
+      alert('Network error while updating status.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    navigate('/login');
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
+    const matchesService = filterService === 'All' || order.customer.serviceType === filterService;
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+    const matchesSearch = normalizedQuery === '' ||
+      order.customer.fullName.toLowerCase().includes(normalizedQuery) ||
+      order.customer.phone.includes(normalizedQuery) ||
+      order.customer.email.toLowerCase().includes(normalizedQuery) ||
+      order._id.toLowerCase().includes(normalizedQuery);
+    return matchesStatus && matchesService && matchesSearch;
+  });
+
+  const totalRevenue = orders
+    .filter(o => o.status !== 'Cancelled')
+    .reduce((acc, curr) => acc + parseFloat(curr.grandTotal), 0);
+
+  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case 'Pending': return { background: '#ffc107', color: '#1a1a1a' };
+      case 'Preparing': return { background: '#0dcaf0', color: '#fff' };
+      case 'Completed': return { background: '#198754', color: '#fff' };
+      case 'Cancelled': return { background: '#dc3545', color: '#fff' };
+      default: return { background: '#6c757d', color: '#fff' };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+        <p className="mt-3 text-muted fw-bold">Loading administrative controls...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-5 text-start position-relative" style={{ background: 'var(--light)', minHeight: '100vh' }}>
+      
+      {/* New Order Alert Toast */}
+      {newOrderAlert && (
+        <div 
+          className="position-fixed top-0 start-50 translate-middle-x mt-4 p-3 rounded shadow-lg d-flex align-items-center gap-3"
+          style={{ 
+            zIndex: 9999, 
+            minWidth: '320px', 
+            maxWidth: '500px', 
+            background: '#1a1a1a',
+            borderLeft: '5px solid #f6a623',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-lg)'
+          }}
+        >
+          <div className="rounded-circle p-2 d-flex justify-content-center align-items-center" style={{ width: '40px', height: '40px', background: '#f6a623', color: '#1a1a1a' }}>
+            <i className="fas fa-bell fa-lg fa-spin"></i>
+          </div>
+          <div className="flex-grow-1">
+            <div className="small fw-bold text-uppercase" style={{ color: '#f6a623', letterSpacing: '1px' }}>🛎️ New Incoming Order!</div>
+            <div className="fw-bold small text-white">{newOrderAlert.customer.fullName} placed an order</div>
+            <div className="font-monospace extra-small" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>Total Amount: ${newOrderAlert.grandTotal}</div>
+          </div>
+          <button onClick={() => setNewOrderAlert(null)} className="btn-close btn-close-white ms-auto small"></button>
+        </div>
+      )}
+
+      {/* Title Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 pb-3" style={{ borderBottom: '2px solid var(--primary)' }}>
+        <div>
+          <h2 className="mb-1" style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, color: 'var(--dark)' }}>
+            Sarab Admin Console <span className="fs-6" style={{ color: '#666', fontWeight: 'normal' }}>Logged in: {adminUser}</span>
+          </h2>
+          <p className="mb-0" style={{ color: '#666', fontSize: '0.85rem' }}>Monitor active kitchen workflows, lookup user invoices, and modify order lifecycles.</p>
+        </div>
+        <div className="d-flex gap-2">
+          <button 
+            onClick={() => fetchOrders(false)} 
+            className="btn-red py-2 px-3"
+            style={{ fontSize: '0.85rem', padding: '8px 16px' }}
+          >
+            <i className="fas fa-sync-alt me-1"></i> Sync Pipeline
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="btn"
+            style={{ background: '#dc3545', color: '#fff', border: 'none', borderRadius: '50px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600 }}
+          >
+            <i className="fas fa-sign-out-alt me-1"></i> Exit Session
+          </button>
+        </div>
+      </div>
+
+      {/* Analytics Summary Counter Cards */}
+      <div className="row g-4 mb-4">
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#666', letterSpacing: '1px' }}>Total System Logs</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--dark)' }}>{orders.length}</div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: '#fff', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: '#f6a623', letterSpacing: '1px' }}>Backlog Queue</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#f6a623' }}>{pendingOrdersCount}</div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="p-4 rounded border shadow-sm text-center" style={{ background: 'linear-gradient(135deg, var(--primary), #c01e12)', borderRadius: '16px' }}>
+            <div className="small fw-bold text-uppercase mb-1" style={{ color: 'rgba(255,255,255,0.8)', letterSpacing: '1px' }}>Gross Sales Matrix</div>
+            <div className="fw-black" style={{ fontSize: '2.5rem', fontWeight: 900, color: '#fff' }}>${totalRevenue.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Sub-Tabs Toggle Row */}
+      <div className="mb-4 d-flex gap-4" style={{ borderBottom: '1px solid #e0e0e0' }}>
+        <button 
+          onClick={() => setActiveTab('orders')} 
+          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'orders' ? 'text-primary' : 'text-muted'}`}
+          style={{ 
+            borderRadius: 0,
+            color: activeTab === 'orders' ? 'var(--primary)' : '#666',
+            borderBottom: activeTab === 'orders' ? '2px solid var(--primary)' : 'none',
+            fontWeight: 600
+          }}
+        >
+          <i className="fas fa-shopping-cart me-2"></i>Live Incoming Orders
+        </button>
+        <button 
+          onClick={() => setActiveTab('menu')} 
+          className={`pb-2 fw-bold btn btn-link text-decoration-none px-0 border-0 ${activeTab === 'menu' ? 'text-primary' : 'text-muted'}`}
+          style={{ 
+            borderRadius: 0,
+            color: activeTab === 'menu' ? 'var(--primary)' : '#666',
+            borderBottom: activeTab === 'menu' ? '2px solid var(--primary)' : 'none',
+            fontWeight: 600
+          }}
+        >
+          <i className="fas fa-hamburger me-2"></i>Manage Dish Catalog
+        </button>
+      </div>
+
+      {activeTab === 'orders' ? (
+        <>
+          {/* Filter Controls */}
+          <div className="p-4 rounded border shadow-sm mb-4" style={{ background: '#fff', borderRadius: '16px' }}>
+            <h6 className="fw-bold text-uppercase small mb-3" style={{ color: 'var(--dark)' }}>
+              <i className="fas fa-sliders-h me-2" style={{ color: 'var(--primary)' }}></i>Live Queue Index Controls
+            </h6>
+            <div className="row g-3">
+              <div className="col-lg-5 col-md-12">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Dynamic String Lookup</label>
+                <div className="position-relative">
+                  <span className="position-absolute top-50 start-0 translate-middle-y ms-3" style={{ color: '#aaa' }}>
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <input 
+                    type="text" 
+                    className="form-control p-2 ps-5"
+                    style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                    placeholder="Search by Customer name, phone digits, or index key..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="col-lg-3 col-sm-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Order Status Lifecycle</label>
+                <select 
+                  className="form-select p-2"
+                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                  value={filterStatus} 
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="All">All Lifecycles Combined</option>
+                  <option value="Pending">Pending Validation</option>
+                  <option value="Preparing">Kitchen Preparation</option>
+                  <option value="Completed">Completed / Dispatched</option>
+                  <option value="Cancelled">Cancelled Actions</option>
+                </select>
+              </div>
+
+              <div className="col-lg-4 col-sm-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#666' }}>Fulfillment Provision Type</label>
+                <select 
+                  className="form-select p-2"
+                  style={{ border: '1px solid #e0e0e0', borderRadius: '12px' }}
+                  value={filterService} 
+                  onChange={(e) => setFilterService(e.target.value)}
+                >
+                  <option value="All">All Channels Combined</option>
+                  <option value="delivery">Premium Courier Delivery</option>
+                  <option value="pickup">Self-Collection Pickup</option>
+                  <option value="dinein">Dine-In Table Configurations</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Orders List */}
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-5 border rounded" style={{ background: '#fff', borderRadius: '16px' }}>
+              <i className="fas fa-filter display-4 mb-3" style={{ color: '#ddd' }}></i>
+              <p className="mb-0 fw-bold" style={{ color: '#666' }}>No records found matching these filter sets.</p>
+              <button 
+                onClick={() => { setSearchQuery(''); setFilterStatus('All'); setFilterService('All'); }} 
+                className="btn btn-link btn-sm mt-2 text-decoration-none"
+                style={{ color: 'var(--primary)' }}
+              >
+                Reset Global Controls
+              </button>
+            </div>
+          ) : (
+            <div className="row g-4">
+              {filteredOrders.map((order) => (
+                <div className="col-12" key={order._id}>
+                  <div className="card shadow-sm border-0 overflow-hidden" style={{ borderRadius: '16px' }}>
+                    <div className="p-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+                      <div>
+                        <span className="fw-bold me-2" style={{ color: 'var(--dark)' }}>Invoice:</span>
+                        <span className="small font-monospace" style={{ color: '#888' }}>{order._id}</span>
+                        <span className="ms-3 small" style={{ color: '#888' }}>
+                          <i className="far fa-clock me-1"></i> {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="d-flex align-items-center gap-3">
+                        <span 
+                          className="badge px-3 py-2 rounded-pill text-uppercase fw-bold"
+                          style={{ ...getStatusBadgeStyle(order.status), fontSize: '0.7rem' }}
+                        >
+                          {order.status}
+                        </span>
+                        <span className="fs-5 fw-bold" style={{ color: 'var(--primary)' }}>${order.grandTotal}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 row g-4" style={{ background: '#fff' }}>
+                      <div className="col-md-4">
+                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Client Specifics</h6>
+                        <div className="fw-bold mb-1" style={{ color: 'var(--dark)' }}>{order.customer.fullName}</div>
+                        <div className="small mb-1" style={{ color: '#888' }}><i className="fas fa-phone me-2"></i>{order.customer.phone}</div>
+                        <div className="small mb-3" style={{ color: '#888' }}><i className="fas fa-envelope me-2"></i>{order.customer.email}</div>
+                        <div className="p-2 rounded small" style={{ background: 'var(--light)', border: '1px solid #f0f0f0' }}>
+                          <span className="text-capitalize fw-bold d-block mb-1" style={{ color: 'var(--dark)' }}>
+                            <i className="fas fa-utensils me-2" style={{ color: 'var(--primary)' }}></i>{order.customer.serviceType}
+                          </span>
+                          <span style={{ color: '#888' }}>{order.customer.details || "No custom fulfillment annotations added."}</span>
+                        </div>
+                      </div>
+
+                      <div className="col-md-5">
+                        <h6 className="text-uppercase small fw-bold mb-3" style={{ color: '#888', letterSpacing: '1px' }}>Cart Manifest</h6>
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="d-flex justify-content-between mb-2 small">
+                            <span style={{ color: 'var(--dark)' }}>{item.title} <strong style={{ color: 'var(--primary)' }}>x{item.quantity}</strong></span>
+                            <span style={{ color: '#888' }}>${(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="col-md-3 d-flex flex-column justify-content-center gap-2">
+                        <h6 className="text-uppercase small fw-bold text-center mb-2" style={{ color: '#888', letterSpacing: '1px' }}>Workflow Controls</h6>
+                        {order.status === 'Pending' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Preparing')} 
+                            className="btn py-2 fw-bold"
+                            style={{ background: '#0dcaf0', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
+                          >
+                            <i className="fas fa-fire me-2"></i>Accept & Prepare
+                          </button>
+                        )}
+                        {order.status === 'Preparing' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Completed')} 
+                            className="btn py-2 fw-bold"
+                            style={{ background: '#198754', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '0.85rem' }}
+                          >
+                            <i className="fas fa-check me-2"></i>Mark Complete
+                          </button>
+                        )}
+                        {order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                          <button 
+                            onClick={() => handleUpdateStatus(order._id, 'Cancelled')} 
+                            className="btn py-2 small"
+                            style={{ background: 'transparent', color: '#dc3545', border: '1px solid #dc3545', borderRadius: '12px', fontSize: '0.8rem' }}
+                          >
+                            Cancel Order
+                          </button>
+                        )}
+                        {(order.status === 'Completed' || order.status === 'Cancelled') && (
+                          <div className="text-center small py-3" style={{ color: '#888' }}>
+                            <i className="fas fa-archive me-2"></i>Order Archived
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <AdminMenuManager />
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboard;
+</file>
+
+<file path="frontend/src/components/AdminMenuManager.jsx">
+import React, { useState, useEffect } from 'react';
+
+const AdminMenuManager = () => {
+  const [menuItems, setMenuItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [formData, setFormData] = useState({
+    title: '', 
+    category: 'burgers', 
+    displayCategory: 'Burgers',
+    price: '', 
+    shortDesc: '', 
+    longDesc: '', 
+    img: ''
+  });
+  const [editingId, setEditingId] = useState(null);
+
+  const token = localStorage.getItem('adminToken');
+
+  const fetchMenu = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/menu');
+      const data = await response.json();
+      setMenuItems(data);
+    } catch (err) {
+      console.error('Error fetching menu:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchMenu(); }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'category') {
+      const displayMap = { 
+        burgers: 'Burgers', 
+        pizza: 'Pizza', 
+        chicken: 'Chicken', 
+        wraps: 'Wraps', 
+        desserts: 'Desserts', 
+        pasta: 'Pasta' 
+      };
+      setFormData({ ...formData, category: value, displayCategory: displayMap[value] || value });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    const targetUrl = editingId ? `http://localhost:5000/api/menu/${editingId}` : 'http://localhost:5000/api/menu';
+    const targetMethod = editingId ? 'PUT' : 'POST';
+
+    let formattedPrice = formData.price.trim();
+    if (!formattedPrice.startsWith('$')) {
+      formattedPrice = `$${formattedPrice}`;
+    }
+
+    const finalImageUrl = formData.img.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
+
+    const cleanPayload = {
+      ...formData,
+      price: formattedPrice,
+      img: finalImageUrl
+    };
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: targetMethod,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(cleanPayload)
+      });
+
+      if (response.ok) {
+        fetchMenu();
+        resetForm();
+        alert(editingId ? 'Dish updated successfully!' : 'New dish added successfully!');
+      } else {
+        const errPayload = await response.json();
+        alert(`Server error: ${errPayload.message}`);
+      }
+    } catch (err) {
+      alert('Error updating menu item.');
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditingId(item._id);
+    setFormData({
+      title: item.title, 
+      category: item.category, 
+      displayCategory: item.displayCategory,
+      price: item.price, 
+      shortDesc: item.shortDesc, 
+      longDesc: item.longDesc || '', 
+      img: item.img || ''
+    });
+  };
+
+  const handleDelete = async (itemId) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/menu/${itemId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) setMenuItems(menuItems.filter(item => item._id !== itemId));
+    } catch (err) {
+      alert('Error deleting item.');
+    }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({ 
+      title: '', 
+      category: 'burgers', 
+      displayCategory: 'Burgers', 
+      price: '', 
+      shortDesc: '', 
+      longDesc: '', 
+      img: '' 
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-5 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+        <p className="mt-3 text-muted fw-bold">Loading Menu Catalog...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="row g-4 text-start">
+      
+      {/* Left Column: Form Container */}
+      <div className="col-md-5">
+        <div className="sticky-top" style={{ top: '110px', zIndex: 10 }}>
+          <div style={{ 
+            background: '#fff', 
+            borderRadius: '18px', 
+            padding: '28px',
+            boxShadow: 'var(--shadow)',
+            border: '1px solid rgba(0,0,0,0.05)'
+          }}>
+            <h5 className="fw-bold pb-2 mb-3" style={{ 
+              fontFamily: "'Playfair Display', serif", 
+              color: 'var(--dark)',
+              borderBottom: '2px solid var(--primary)',
+              display: 'inline-block'
+            }}>
+              <i className="fas fa-utensils me-2" style={{ color: 'var(--primary)' }}></i>
+              {editingId ? 'Edit Selected Dish' : 'Add New Menu Item'}
+            </h5>
+            <form onSubmit={handleFormSubmit} className="mt-4">
+              
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Dish Name *</label>
+                <input 
+                  type="text" 
+                  name="title" 
+                  className="form-control" 
+                  style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                  value={formData.title} 
+                  onChange={handleInputChange} 
+                  placeholder="e.g. Spicy Nashville Hot Chicken" 
+                  required 
+                />
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Price *</label>
+                  <input 
+                    type="text" 
+                    name="price" 
+                    className="form-control" 
+                    style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                    value={formData.price} 
+                    onChange={handleInputChange} 
+                    placeholder="14.99" 
+                    required 
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Category</label>
+                  <select 
+                    name="category" 
+                    className="form-select" 
+                    style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                    value={formData.category} 
+                    onChange={handleInputChange}
+                  >
+                    <option value="burgers">Burgers</option>
+                    <option value="pizza">Pizza</option>
+                    <option value="chicken">Chicken</option>
+                    <option value="wraps">Wraps</option>
+                    <option value="desserts">Desserts</option>
+                    <option value="pasta">Pasta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Image URL</label>
+                <input 
+                  type="url" 
+                  name="img" 
+                  className="form-control mb-2" 
+                  style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                  value={formData.img} 
+                  onChange={handleInputChange} 
+                  placeholder="https://images.unsplash.com/..." 
+                />
+                {formData.img && (
+                  <div className="mt-2 p-2 text-center" style={{ background: 'var(--light)', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
+                    <small className="d-block mb-1" style={{ color: '#666' }}>Live Preview:</small>
+                    <img 
+                      src={formData.img} 
+                      alt="Preview" 
+                      style={{ maxHeight: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop'; }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Short Description *</label>
+                <input 
+                  type="text" 
+                  name="shortDesc" 
+                  className="form-control" 
+                  style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                  value={formData.shortDesc} 
+                  onChange={handleInputChange} 
+                  placeholder="Brief description for card layout..." 
+                  required 
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Long Description</label>
+                <textarea 
+                  name="longDesc" 
+                  rows="3" 
+                  className="form-control" 
+                  style={{ padding: '10px 14px', borderRadius: '12px', border: '1px solid #e0e0e0' }}
+                  value={formData.longDesc} 
+                  onChange={handleInputChange} 
+                  placeholder="Detailed ingredients and description..."
+                ></textarea>
+              </div>
+
+              <button 
+                type="submit" 
+                className="btn-red w-100 py-2 mb-2"
+                style={{ fontSize: '0.95rem' }}
+              >
+                {editingId ? 'Update Dish' : 'Publish Dish'}
+              </button>
+              {editingId && (
+                <button 
+                  type="button" 
+                  onClick={resetForm} 
+                  className="btn w-100"
+                  style={{ background: 'transparent', color: '#666', border: 'none', fontSize: '0.85rem' }}
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Menu Items List */}
+      <div className="col-md-7">
+        <h5 className="fw-bold pb-2 mb-3" style={{ 
+          fontFamily: "'Playfair Display', serif", 
+          color: 'var(--dark)',
+          borderBottom: '2px solid var(--primary)',
+          display: 'inline-block'
+        }}>
+          Live Menu Catalog ({menuItems.length} items)
+        </h5>
+        <div className="d-flex flex-column gap-3 mt-3">
+          {menuItems.map(item => (
+            <div 
+              key={item._id} 
+              className="d-flex gap-3 align-items-center p-3"
+              style={{ 
+                background: '#fff', 
+                borderRadius: '16px',
+                boxShadow: 'var(--shadow)',
+                border: '1px solid rgba(0,0,0,0.05)',
+                transition: 'transform 0.3s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <img 
+                src={item.img} 
+                alt={item.title} 
+                style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '12px' }} 
+                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop'; }}
+              />
+              <div className="flex-grow-1">
+                <h6 className="mb-0 fw-bold" style={{ color: 'var(--dark)' }}>
+                  {item.title} 
+                  <span className="badge ms-2" style={{ 
+                    background: 'rgba(225, 91, 100, 0.1)', 
+                    color: 'var(--primary)', 
+                    fontSize: '0.7rem',
+                    padding: '4px 10px',
+                    borderRadius: '20px'
+                  }}>{item.category}</span>
+                </h6>
+                <div className="fw-bold mt-1" style={{ color: 'var(--primary)', fontSize: '0.9rem' }}>{item.price}</div>
+                <p className="mb-0 mt-1" style={{ color: '#888', fontSize: '0.8rem' }}>{item.shortDesc}</p>
+              </div>
+              <div className="d-flex gap-2">
+                <button 
+                  onClick={() => startEdit(item)} 
+                  className="btn"
+                  style={{ 
+                    background: 'transparent', 
+                    color: '#666', 
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#666'; e.currentTarget.style.borderColor = '#e0e0e0'; }}
+                >
+                  <i className="fas fa-edit"></i>
+                </button>
+                <button 
+                  onClick={() => handleDelete(item._id)} 
+                  className="btn"
+                  style={{ 
+                    background: 'transparent', 
+                    color: '#dc3545', 
+                    border: '1px solid #dc3545',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#dc3545'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#dc3545'; }}
+                >
+                  <i className="fas fa-trash-alt"></i>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+export default AdminMenuManager;
+</file>
+
+<file path="frontend/src/components/CartDrawer.jsx">
+import React from 'react';
+import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
+
+const CartDrawer = ({ isOpen, onClose }) => {
+  const { cart, updateQuantity, removeFromCart, cartTotal, clearCart } = useCart();
+  const navigate = useNavigate();
+  
+  if (!isOpen) return null;
+
+  return (
+    <div className="position-fixed top-0 end-0 h-100 bg-white shadow-lg border-start animate-slide-in" 
+         style={{ width: '400px', zIndex: 10090, maxWidth: '100vw' }}>
+      
+      {/* Drawer Header */}
+      <div className="p-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderBottomColor: '#f0f0f0' }}>
+        <h5 className="mb-0 fw-bold" style={{ fontFamily: "'Playfair Display', serif", color: 'var(--dark)' }}>
+          <i className="fas fa-shopping-basket me-2" style={{ color: 'var(--primary)' }}></i>
+          My Cart
+        </h5>
+        <button className="btn-close" onClick={onClose} style={{ outline: 'none' }}></button>
+      </div>
+
+      {/* Cart Item Loop Sheet */}
+      <div className="p-4 overflow-auto flex-grow-1" style={{ height: 'calc(100vh - 250px)' }}>
+        {cart.length === 0 ? (
+          <div className="text-center py-5">
+            <i className="fas fa-shopping-cart display-4 mb-3" style={{ color: '#ddd' }}></i>
+            <p className="text-muted" style={{ fontFamily: "'Poppins', sans-serif" }}>Your basket is entirely empty!</p>
+          </div>
+        ) : (
+          cart.map((item) => (
+            <div key={item.id} className="d-flex gap-3 mb-4 align-items-center pb-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <img 
+                src={item.img} 
+                alt={item.title} 
+                className="rounded object-cover" 
+                style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '12px' }} 
+              />
+              <div className="flex-grow-1">
+                <h6 className="mb-1 fw-bold text-truncate" style={{ 
+                  fontFamily: "'Playfair Display', serif", 
+                  color: 'var(--dark)', 
+                  maxWidth: '180px',
+                  fontSize: '0.9rem'
+                }}>
+                  {item.title}
+                </h6>
+                <div className="fw-bold" style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>
+                  ${(item.price * item.quantity).toFixed(2)}
+                </div>
+                
+                {/* Micro Quantity Stepper Controls */}
+                <div className="d-flex align-items-center mt-2 gap-2">
+                  <button 
+                    className="btn d-flex align-items-center justify-content-center p-0" 
+                    style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '8px', 
+                      background: '#f5f5f5',
+                      border: 'none',
+                      color: 'var(--dark)',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold'
+                    }}
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  >
+                    -
+                  </button>
+                  <span className="fw-bold" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>{item.quantity}</span>
+                  <button 
+                    className="btn d-flex align-items-center justify-content-center p-0" 
+                    style={{ 
+                      width: '28px', 
+                      height: '28px', 
+                      borderRadius: '8px', 
+                      background: '#f5f5f5',
+                      border: 'none',
+                      color: 'var(--dark)',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold'
+                    }}
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <button 
+                className="btn p-2 border-0" 
+                style={{ color: '#dc3545', background: 'transparent' }}
+                onClick={() => removeFromCart(item.id)}
+              >
+                <i className="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Checkout Matrix Footer Block */}
+      <div className="position-absolute bottom-0 start-0 w-100 p-4 border-top" style={{ background: 'var(--light)', borderTopColor: '#f0f0f0' }}>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <span className="fw-bold" style={{ color: '#666', fontSize: '0.9rem' }}>Grand Total:</span>
+          <span className="fw-black" style={{ 
+            color: 'var(--primary)', 
+            fontSize: '1.6rem', 
+            fontWeight: 900,
+            fontFamily: "'Playfair Display', serif"
+          }}>
+            ${cartTotal}
+          </span>
+        </div>
+        <button 
+          className="btn w-100 py-3 fw-bold rounded shadow-sm mb-2" 
+          style={{ 
+            background: 'linear-gradient(135deg, var(--primary), #c01e12)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '12px',
+            fontWeight: 600,
+            fontSize: '0.95rem'
+          }}
+          disabled={cart.length === 0} 
+          onClick={() => {
+            onClose();
+            navigate('/checkout');
+          }}
+        >
+          <i className="fas fa-credit-card me-2"></i>Checkout Now
+        </button>
+        {cart.length > 0 && (
+          <button 
+            className="btn btn-sm w-100 text-decoration-none" 
+            style={{ color: '#999', background: 'transparent', border: 'none', fontSize: '0.75rem' }}
+            onClick={clearCart}
+          >
+            Clear Entire Cart
+          </button>
+        )}
+      </div>
+
+      <style>{`
+        .animate-slide-in {
+          animation: slideInRight 0.3s ease-out;
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+        .btn-close:hover {
+          opacity: 0.7;
+        }
+        .btn:hover {
+          transform: translateY(-1px);
+        }
+        .btn:active {
+          transform: translateY(0);
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default CartDrawer;
+</file>
+
+<file path="frontend/src/components/Categories.jsx">
+import React from "react";
+
+const Categories = () => {
+  const categoriesData = [
+    {
+      id: 1,
+      icon: "fa-user-tie",
+      title: "Master Chefs",
+      description:
+        "Our experienced chefs blend passion and creativity to craft unforgettable culinary experiences."
+    },
+    {
+      id: 2,
+      icon: "fa-utensils",
+      title: "Quality Food",
+      description:
+        "Fresh ingredients, authentic recipes, and exceptional quality are at the heart of every dish."
+    },
+    {
+      id: 3,
+      icon: "fa-cart-plus",
+      title: "Online Ordering",
+      description:
+        "Order your favorite meals with ease and enjoy restaurant-quality food delivered to your doorstep."
+    }
+  ];
+
+  return (
+    <div className="py-5" id="categories-section" style={{ background: '#fff8f0', width: '100%' }}>
+      <div className="container" style={{ maxWidth: '1320px', margin: '0 auto', padding: '0 15px' }}>
+        
+        {/* Section Header */}
+        <div className="text-center mb-5" data-aos="fade-up">
+          <span className="slbl" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '1.35rem', color: '#e8281a', display: 'block', marginBottom: '4px' }}>What We Offer</span>
+          <h2 className="stitle" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', fontWeight: 900, lineHeight: 1.2, marginBottom: '12px' }}>
+            Browse by <span style={{ color: '#e8281a' }}>Category</span>
+          </h2>
+          <div className="sline" style={{ width: '58px', height: '4px', borderRadius: '4px', background: 'linear-gradient(90deg, #e8281a, #f6a623)', margin: '0 auto 12px' }}></div>
+          <p className="sdesc mx-auto" style={{ maxWidth: '480px', color: '#666', fontSize: '0.93rem', lineHeight: 1.8 }}>
+            From sizzling burgers to exotic world cuisines - find your favourite in our menu
+          </p>
+        </div>
+
+        <div className="row g-4 justify-content-center">
+          {categoriesData.map((item, index) => (
+            <div className="col-lg-3 col-sm-6" key={item.id} data-aos="zoom-in" data-aos-delay={index * 70}>
+              <div className="service-item rounded h-100" style={{ 
+                background: '#fff', 
+                boxShadow: '0 0 45px rgba(0, 0, 0, 0.08)', 
+                transition: '0.5s',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                borderRadius: '16px'
+              }}>
+                <div className="p-4 text-center">
+                  <div className="service-icon-wrapper mb-4" style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    borderRadius: '50%', 
+                    background: 'rgba(225, 91, 100, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto',
+                    transition: '0.5s'
+                  }}>
+                    <i
+                      className={`fa ${item.icon} fa-3x`}
+                      style={{ color: 'var(--primary)', transition: '0.5s' }}
+                    ></i>
+                  </div>
+
+                  <h5 className="mb-3 service-title" style={{ 
+                    color: 'var(--dark)', 
+                    fontWeight: 700, 
+                    transition: '0.5s',
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: '1.25rem'
+                  }}>
+                    {item.title}
+                  </h5>
+
+                  <p className="mb-0 service-desc" style={{ 
+                    color: '#666', 
+                    lineHeight: 1.7, 
+                    transition: '0.5s',
+                    fontSize: '0.9rem'
+                  }}>
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        .service-item:hover {
+          background: var(--primary) !important;
+          transform: translateY(-10px);
+        }
+        .service-item:hover .service-icon-wrapper {
+          background: rgba(255, 255, 255, 0.2) !important;
+        }
+        .service-item:hover .service-icon-wrapper i {
+          color: #ffffff !important;
+        }
+        .service-item:hover .service-title,
+        .service-item:hover .service-desc {
+          color: #ffffff !important;
+        }
+        @media (max-width: 768px) {
+          .container {
+            padding: 0 20px !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default Categories;
+</file>
+
+<file path="frontend/src/components/Checkout.jsx">
+import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
+import { Link } from 'react-router-dom';
+
+const Checkout = () => {
+  const { cart, cartTotal, clearCart } = useCart();
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    serviceType: 'delivery',
+    details: '',
+  });
+
+  const [errors, setErrors] = useState({});
+  const [orderSubmitted, setOrderSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const parseNumericPrice = (priceVal) => {
+    if (priceVal === undefined || priceVal === null) return 0;
+    if (typeof priceVal === 'number') return priceVal;
+    const cleanStr = String(priceVal).replace(/[^0-9.]/g, '');
+    const parsed = parseFloat(cleanStr);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: '' });
+    }
+  };
+
+  const validateForm = () => {
+    let formErrors = {};
+    if (!formData.fullName.trim()) formErrors.fullName = 'Full name is required';
+    if (!formData.phone.trim()) {
+      formErrors.phone = 'Phone number is required';
+    } else if (!/^\+?[0-9]{7,14}$/.test(formData.phone.replace(/\s/g, ''))) {
+      formErrors.phone = 'Please enter a valid phone number';
+    }
+    if (!formData.email.trim()) formErrors.email = 'Email address is required';
+    if (!formData.details.trim() && formData.serviceType === 'delivery') {
+      formErrors.details = 'Delivery address description is required';
+    }
+    return formErrors;
+  };
+
+  const handleSubmitOrder = async (e) => {
+    e.preventDefault();
+    
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const orderPayload = {
+      customer: {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        email: formData.email,
+        serviceType: formData.serviceType,
+        details: formData.details
+      },
+      items: cart.map(item => ({
+        title: item.title,
+        price: parseNumericPrice(item.price),
+        quantity: item.quantity
+      })),
+      grandTotal: typeof cartTotal === 'string' ? parseNumericPrice(cartTotal).toFixed(2) : parseFloat(cartTotal).toFixed(2)
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setOrderSubmitted(true);
+        clearCart();
+      } else {
+        alert(data.message || 'Something went sideways during order placement.');
+      }
+    } catch (err) {
+      console.error('Order submission pipeline error context:', err);
+      alert('Failed to establish connection with the backend server. Make sure your local server is running on port 5000!');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (orderSubmitted) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="p-5 mx-auto" style={{ maxWidth: '600px', background: 'var(--light)', borderRadius: '18px', boxShadow: 'var(--shadow)', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="mb-4" style={{ fontSize: '4rem', color: 'var(--green)' }}>
+            <i className="fas fa-check-circle"></i>
+          </div>
+          <h2 className="mb-3 fw-bold" style={{ fontFamily: '"Playfair Display", serif', color: 'var(--dark)' }}>Order Placed Successfully!</h2>
+          <p className="mb-4" style={{ color: '#666' }}>Thank you for dining with Sarab. Your order sequence has been stored in our local database and is being processed by our kitchen staff.</p>
+          <Link to="/" className="btn-red" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+            <i className="fas fa-arrow-left"></i> Return Home Menu
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (cart.length === 0) {
+    return (
+      <div className="container py-5 text-center">
+        <i className="fas fa-shopping-basket display-1 mb-4" style={{ color: '#ddd' }}></i>
+        <h3 className="fw-bold" style={{ fontFamily: '"Playfair Display", serif', color: 'var(--dark)' }}>Your Checkout Basket is Empty</h3>
+        <p className="text-muted mb-4">Add some of our delicious menu items before verifying selection gates.</p>
+        <Link to="/" className="btn-red" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+          Browse Menu Items
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-5 text-start">
+      <div className="row g-5">
+        
+        {/* Left Side: Client Data Form Validation Group */}
+        <div className="col-lg-7">
+          <h4 className="mb-4 fw-bold pb-2" style={{ 
+            fontFamily: '"Playfair Display", serif', 
+            color: 'var(--dark)',
+            borderBottom: '2px solid var(--primary)',
+            display: 'inline-block'
+          }}>
+            <i className="fas fa-id-card me-2" style={{ color: 'var(--primary)' }}></i>
+            Guest Fulfillment Information
+          </h4>
+          
+          <form onSubmit={handleSubmitOrder} className="mt-4">
+            <div className="mb-4">
+              <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Full Name *</label>
+              <input 
+                type="text" 
+                name="fullName" 
+                className={`form-control ${errors.fullName ? 'is-invalid' : ''}`} 
+                style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e0e0e0', fontFamily: "'Poppins', sans-serif" }}
+                placeholder="John Doe" 
+                value={formData.fullName} 
+                onChange={handleInputChange} 
+                disabled={isSubmitting} 
+              />
+              {errors.fullName && <div className="invalid-feedback">{errors.fullName}</div>}
+            </div>
+
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Phone Number *</label>
+                <input 
+                  type="tel" 
+                  name="phone" 
+                  className={`form-control ${errors.phone ? 'is-invalid' : ''}`} 
+                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e0e0e0', fontFamily: "'Poppins', sans-serif" }}
+                  placeholder="+1 234 567 890" 
+                  value={formData.phone} 
+                  onChange={handleInputChange} 
+                  disabled={isSubmitting} 
+                />
+                {errors.phone && <div className="invalid-feedback">{errors.phone}</div>}
+              </div>
+              <div className="col-md-6">
+                <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Email Address *</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  className={`form-control ${errors.email ? 'is-invalid' : ''}`} 
+                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e0e0e0', fontFamily: "'Poppins', sans-serif" }}
+                  placeholder="john@example.com" 
+                  value={formData.email} 
+                  onChange={handleInputChange} 
+                  disabled={isSubmitting} 
+                />
+                {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Dining Service Type</label>
+              <select 
+                name="serviceType" 
+                className="form-select" 
+                style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e0e0e0', fontFamily: "'Poppins', sans-serif" }}
+                value={formData.serviceType} 
+                onChange={handleInputChange} 
+                disabled={isSubmitting}
+              >
+                <option value="delivery">Premium Courier Delivery</option>
+                <option value="pickup">Self-Collection Pickup</option>
+                <option value="dinein">Dine-In Table Reservation Placement</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>
+                {formData.serviceType === 'delivery' ? 'Physical Street Address *' : 'Special Dining Requests / Table Configuration Preferences'}
+              </label>
+              <textarea 
+                name="details" 
+                rows="4" 
+                className={`form-control ${errors.details ? 'is-invalid' : ''}`} 
+                style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #e0e0e0', fontFamily: "'Poppins', sans-serif" }}
+                placeholder={formData.serviceType === 'delivery' ? '123 Fine Dining Street, Suite 4B' : 'Please reserve near the terrace view or input your current table number...'} 
+                value={formData.details} 
+                onChange={handleInputChange} 
+                disabled={isSubmitting}
+              ></textarea>
+              {errors.details && <div className="invalid-feedback">{errors.details}</div>}
+            </div>
+
+            <button 
+              type="submit" 
+              className="btn-red w-100 d-flex align-items-center justify-content-center gap-2" 
+              style={{ padding: '16px', fontSize: '1rem' }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="spinner-border spinner-border-sm text-light" role="status"></div>
+                  Processing Secure Order...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-lock"></i> Authorize & Place Secure Order (${parseNumericPrice(cartTotal).toFixed(2)})
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Right Side: Consolidated Real-Time Receipt Summary Component Box */}
+        <div className="col-lg-5">
+          <div className="p-4 rounded border shadow-sm position-sticky" style={{ 
+            top: '110px', 
+            background: '#fff', 
+            borderRadius: '18px',
+            border: '1px solid #f0f0f0'
+          }}>
+            <h5 className="mb-4 fw-bold" style={{ fontFamily: '"Playfair Display", serif', color: 'var(--dark)', fontSize: '1.25rem' }}>
+              <i className="fas fa-receipt me-2" style={{ color: 'var(--primary)' }}></i>
+              Order Summary
+            </h5>
+            
+            <div className="mb-4 overflow-auto" style={{ maxHeight: '320px' }}>
+              {cart.map((item) => (
+                <div key={item._id || item.id} className="d-flex justify-content-between align-items-center mb-3 pb-2" style={{ borderBottom: '1px dashed #e0e0e0' }}>
+                  <div className="d-flex align-items-center gap-3 text-start">
+                    <img 
+                      src={item.img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'} 
+                      alt={item.title} 
+                      className="rounded" 
+                      style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '10px' }} 
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100'; }}
+                    />
+                    <div>
+                      <h6 className="mb-0 fw-bold text-truncate" style={{ 
+                        fontFamily: "'Playfair Display', serif", 
+                        color: 'var(--dark)', 
+                        maxWidth: '160px',
+                        fontSize: '0.85rem'
+                      }}>{item.title}</h6>
+                      <small className="text-muted" style={{ fontSize: '0.7rem' }}>Qty: {item.quantity}</small>
+                    </div>
+                  </div>
+                  <span className="fw-bold" style={{ color: 'var(--primary)', fontSize: '0.9rem' }}>
+                    ${(parseNumericPrice(item.price) * item.quantity).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="d-flex justify-content-between align-items-center pt-3 border-top" style={{ borderTop: '2px solid var(--primary)' }}>
+              <span className="fw-bold" style={{ color: 'var(--dark)', fontSize: '1rem' }}>Total to Pay:</span>
+              <span className="fw-black" style={{ color: 'var(--primary)', fontSize: '1.5rem', fontFamily: "'Playfair Display', serif" }}>
+                ${parseNumericPrice(cartTotal).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default Checkout;
+</file>
+
+<file path="frontend/src/components/Footer.jsx">
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Footer = () => {
+  return (
+    <footer className="border-top bg-white" style={{ borderTopColor: 'rgba(225, 91, 100, 0.1)' }}>
+      
+      {/* MAIN FOOTER CONTENT */}
+      <div className="container py-5 text-start">
+        <div className="row g-5">
+          
+          {/* Brand Section */}
+          <div className="col-lg-4 col-md-12">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <div className="bico" style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', color: '#fff', boxShadow: '0 4px 15px rgba(225, 91, 100, 0.35)' }}>
+                <i className="fas fa-utensils"></i>
+              </div>
+              <div>
+                <div className="bname" style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', fontWeight: 900, color: 'var(--dark)' }}>
+                  Sar<span style={{ color: 'var(--primary)' }}>ab</span>
+                </div>
+                <div className="bsub" style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '2px', color: '#aaa' }}>Premium Dining</div>
+              </div>
+            </div>
+            <p className="fdesc" style={{ color: '#777', fontSize: '0.86rem', lineHeight: 1.8, marginTop: '9px' }}>
+              We bring the world's finest flavors together in a fast, friendly, and affordable experience. Every meal crafted with love.
+            </p>
+            <div className="fsoc d-flex gap-3 mt-3">
+              <a href="#" className="text-muted fs-5" style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'rgba(0, 0, 0, 0.04)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' }}><i className="fab fa-facebook-f"></i></a>
+              <a href="#" className="text-muted fs-5" style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'rgba(0, 0, 0, 0.04)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' }}><i className="fab fa-instagram"></i></a>
+              <a href="#" className="text-muted fs-5" style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'rgba(0, 0, 0, 0.04)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' }}><i className="fab fa-twitter"></i></a>
+              <a href="#" className="text-muted fs-5" style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'rgba(0, 0, 0, 0.04)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' }}><i className="fab fa-youtube"></i></a>
+            </div>
+          </div>
+          
+        
+
+          {/* Our Menu */}
+          <div className="col-sm-6 col-lg-2">
+            <div className="ftit" style={{ color: 'var(--dark)', fontSize: '0.95rem', fontWeight: 700, marginBottom: '18px', paddingBottom: '9px', borderBottom: '2px solid var(--primary)', display: 'inline-block' }}>Our Menu</div>
+            <ul className="flinks ps-0 list-unstyled">
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Burgers</a></li>
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Pizza</a></li>
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Fried Chicken</a></li>
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Wraps & Rolls</a></li>
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Pasta</a></li>
+              <li className="mb-2"><a href="#menu-section" className="text-muted text-decoration-none" style={{ fontSize: '0.86rem', transition: '0.3s', display: 'inline-flex', alignItems: 'center', gap: '7px' }}><i className="fas fa-chevron-right" style={{ color: 'var(--primary)', fontSize: '0.68rem' }}></i>Desserts</a></li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div className="col-lg-4">
+            <div className="ftit" style={{ color: 'var(--dark)', fontSize: '0.95rem', fontWeight: 700, marginBottom: '18px', paddingBottom: '9px', borderBottom: '2px solid var(--primary)', display: 'inline-block' }}>Get In Touch</div>
+            <div className="fci d-flex gap-3 mb-3">
+              <div className="fciico" style={{ width: '34px', height: '34px', borderRadius: '7px', background: 'rgba(225, 91, 100, 0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '0.82rem', flexShrink: 0 }}>
+                <i className="fas fa-map-marker-alt"></i>
+              </div>
+              <div className="fciinfo" style={{ color: '#777', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                <strong style={{ color: '#bbb', display: 'block', fontSize: '0.77rem' }}>Address</strong>
+                42 Flavor Street, Manhattan, NY 10001
+              </div>
+            </div>
+            <div className="fci d-flex gap-3 mb-3">
+              <div className="fciico" style={{ width: '34px', height: '34px', borderRadius: '7px', background: 'rgba(225, 91, 100, 0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '0.82rem', flexShrink: 0 }}>
+                <i className="fas fa-phone-alt"></i>
+              </div>
+              <div className="fciinfo" style={{ color: '#777', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                <strong style={{ color: '#bbb', display: 'block', fontSize: '0.77rem' }}>Phone</strong>
+                +1 (800) 123-4567
+              </div>
+            </div>
+            <div className="fci d-flex gap-3 mb-3">
+              <div className="fciico" style={{ width: '34px', height: '34px', borderRadius: '7px', background: 'rgba(225, 91, 100, 0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '0.82rem', flexShrink: 0 }}>
+                <i className="fas fa-envelope"></i>
+              </div>
+              <div className="fciinfo" style={{ color: '#777', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                <strong style={{ color: '#bbb', display: 'block', fontSize: '0.77rem' }}>Email</strong>
+                hello@sarabfood.com
+              </div>
+            </div>
+            <div className="fci d-flex gap-3 mb-3">
+              <div className="fciico" style={{ width: '34px', height: '34px', borderRadius: '7px', background: 'rgba(225, 91, 100, 0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '0.82rem', flexShrink: 0 }}>
+                <i className="fas fa-clock"></i>
+              </div>
+              <div className="fciinfo" style={{ color: '#777', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                <strong style={{ color: '#bbb', display: 'block', fontSize: '0.77rem' }}>Hours</strong>
+                Wed - Sun: 09 AM - 11 PM
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Copyright Bar */}
+        <div className="mt-5 pt-4 border-top text-center text-muted small d-flex flex-wrap justify-content-between align-items-center gap-2" style={{ borderTopColor: 'rgba(0, 0, 0, 0.06)' }}>
+         
+          <div className="d-flex gap-3">
+            <a href="#" className="text-muted text-decoration-none" style={{ fontSize: '0.8rem' }}>Privacy Policy</a>
+            <a href="#" className="text-muted text-decoration-none" style={{ fontSize: '0.8rem' }}>Terms</a>
+            <a href="#" className="text-muted text-decoration-none" style={{ fontSize: '0.8rem' }}>Cookies</a>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .fsoc a:hover {
+          background: var(--primary) !important;
+          color: #fff !important;
+          transform: translateY(-3px);
+        }
+        .flinks a:hover {
+          color: var(--primary) !important;
+          padding-left: 5px;
+        }
+      `}</style>
+    </footer>
+  );
+};
+
+export default Footer;
+</file>
+
+<file path="frontend/src/components/Hero.jsx">
+import React from "react";
+
+const Hero = () => {
+  const handleScrollToMenu = () => {
+    const menu = document.getElementById("menu-section");
+
+    if (menu) {
+      window.scrollTo({
+        top: menu.offsetTop - 100,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  return (
+    <section id="hero-section" className="hero-section" style={{ background: '#fff8f0' }}>
+      <div className="container">
+        <div className="row align-items-center min-vh-100">
+
+          {/* LEFT */}
+
+          <div className="col-lg-6 text-center text-lg-start">
+
+            <h1 className="hero-title">
+              Enjoy Our
+              <br />
+              <span>Delicious Meal</span>
+            </h1>
+
+            <p className="hero-desc">
+              Experience the perfect harmony of traditional flavors and
+              modern culinary arts. Every ingredient is selected with care
+              to create an unforgettable dining experience.
+            </p>
+          </div>
+
+          {/* RIGHT */}
+
+          <div className="col-lg-6">
+
+            <div className="hero-image-wrapper">
+
+              <div className="hero-bg-circle"></div>
+
+              <div className="hero-tag tag1">
+                🍔 Burger
+              </div>
+
+              <div className="hero-tag tag2">
+                🍕 Pizza
+              </div>
+
+              <div className="hero-tag tag3">
+                ☕ Coffee
+              </div>
+
+              <div className="hero-tag tag4">
+                🥗 Fresh Food
+              </div>
+
+              <div className="hero-tag tag5">
+                ⭐ Best Quality
+              </div>
+
+              <img
+                src="/main_images/banner-img.jpg"
+                alt=""
+                className="hero-food-image"
+              />
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
+</file>
+
+<file path="frontend/src/components/HistoryHours.jsx">
+// src/components/HistoryHours.jsx
+import React, { useState, useEffect } from 'react';
+
+const HistoryHours = () => {
+  const [countdown, setCountdown] = useState({
+    hours: 8,
+    minutes: 45,
+    seconds: 30
+  });
+
+  // Countdown timer for special offer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        let { hours, minutes, seconds } = prev;
+        if (seconds > 0) {
+          seconds--;
+        } else if (minutes > 0) {
+          minutes--;
+          seconds = 59;
+        } else if (hours > 0) {
+          hours--;
+          minutes = 59;
+          seconds = 59;
+        }
+        return { hours, minutes, seconds };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const timelineData = [
+    {
+      year: "2012",
+      title: "Evolution of Restaurants",
+      description: "Sarab opens its first 20-seat diner on Flavor Street. Within 3 months, lines stretch around the block every evening as word of our food spreads."
+    },
+    {
+      year: "2015",
+      title: "Fine Dining & The Concept",
+      description: "Expanding the vision - we introduced our signature tasting menu and hired our first Michelin-trained chef, elevating our craft to remarkable new heights."
+    },
+    {
+      year: "2019",
+      title: "Modern Fast Food Origins",
+      description: "Launched our signature fast-food line, merging gourmet quality with speed and convenience. Within 6 months we won 3 prestigious culinary awards nationally."
+    },
+    {
+      year: "2026",
+      title: "National Expansion",
+      description: "Now operating in 8 cities across the US with an online delivery platform handling 10,000+ orders weekly - and growing every single day."
+    }
+  ];
+
+  const openingHours = [
+    { day: "Monday - Tuesday", hours: "Closed", isOpen: false },
+    { day: "Wednesday - Thursday", hours: "09:00 AM - 10:00 PM", isOpen: true },
+    { day: "Friday", hours: "09:00 AM - 11:00 PM", isOpen: true },
+    { day: "Saturday", hours: "10:00 AM - 11:30 PM", isOpen: true },
+    { day: "Sunday", hours: "11:00 AM - 09:00 PM", isOpen: true }
+  ];
+
+  return (
+    <>
+      {/* ============================================================
+         HISTORY SECTION - Timeline with alternating layout
+         ============================================================ */}
+      <section id="history" className="py-5" style={{ background: 'var(--cream)' }}>
+        <div className="container">
+          <div className="text-center mb-5" data-aos="fade-up">
+            <h5 className="section-title text-start text-primary fw-normal">
+                        Our Journery
+                        </h5>
+            <h2 className="stitle">A History of <span>Restaurant</span></h2>
+            <div className="sline"></div>
+            <p className="sdesc mx-auto" style={{ maxWidth: '480px' }}>
+              From humble beginnings to the city's most beloved restaurant - every chapter written with passion.
+            </p>
+          </div>
+
+          <div className="timeline" data-aos="fade-up">
+            {timelineData.map((item, index) => (
+              <div className="tli" key={index}>
+                <div className="tl-left">
+                  <div className="tlyear">{item.year}</div>
+                  <h5>{item.title}</h5>
+                  <p>{item.description}</p>
+                </div>
+                <div className="tl-center">
+                  <div className="tldot"></div>
+                </div>
+                <div className="tl-right">
+                  <div className="tlyear">{item.year}</div>
+                  <h5>{item.title}</h5>
+                  <p>{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+         HOURS SECTION - Opening hours and contact info
+         ============================================================ */}
+      <section id="hours" className="py-5" style={{ background: 'linear-gradient(135deg, var(--green), #1a4a35)', position: 'relative', overflow: 'hidden' }}>
+        <div className="hrsbg" style={{ position: 'absolute', inset: 0, opacity: 0.05, background: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '28px 28px' }}></div>
+        <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center mb-5" data-aos="fade-up">
+            <span className="slbl" style={{ color: '#a5d6bc' }}>Opening Hours</span>
+            <h2 className="stitle" style={{ color: '#fff' }}>We're Open <span style={{ color: 'var(--secondary)' }}>For You</span></h2>
+            <div className="sline"></div>
+          </div>
+
+          <div className="row g-4 align-items-start">
+            {/* Opening Hours Card */}
+            <div className="col-lg-5" data-aos="fade-right">
+              <div className="hrscard" style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.14)', borderRadius: '18px', padding: '28px' }}>
+                {openingHours.map((item, idx) => (
+                  <div className="hrsrow" key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: idx < openingHours.length - 1 ? '1px solid rgba(255, 255, 255, 0.09)' : 'none' }}>
+                    <span className="hrsday" style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.9rem', fontWeight: 500 }}>
+                      <i className="fas fa-calendar-day me-2" style={{ color: 'var(--secondary)' }}></i>
+                      {item.day}
+                    </span>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="hdot" style={{ width: '7px', height: '7px', borderRadius: '50%', background: item.isOpen ? '#4ade80' : '#ff6b6b', boxShadow: item.isOpen ? '0 0 7px #4ade80' : 'none' }}></div>
+                      <span className="hrstime" style={{ color: item.isOpen ? '#fff' : '#ff6b6b', fontWeight: 700, fontSize: '0.9rem' }}>{item.hours}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Order Online CTA Card */}
+            <div className="col-lg-3" data-aos="zoom-in">
+              <div className="hrscta" style={{ background: 'var(--primary)', borderRadius: '18px', padding: '28px', textAlign: 'center', boxShadow: '0 18px 48px rgba(232, 40, 26, 0.4)' }}>
+                <i className="fas fa-truck-fast fa-2x mb-3" style={{ color: 'rgba(255, 255, 255, 0.8)' }}></i>
+                <h4 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 800 }}>Order Online</h4>
+                <p style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.86rem', margin: '9px 0 18px' }}>Get hot food delivered in 25 minutes</p>
+              </div>
+            </div>
+
+            {/* Find Us / Contact Info Card */}
+            <div className="col-lg-4" data-aos="fade-left">
+              <div className="hrscard" style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.14)', borderRadius: '18px', padding: '28px' }}>
+                <h5 style={{ color: '#fff', marginBottom: '18px', fontFamily: "'Poppins', sans-serif", fontSize: '.95rem', fontWeight: 700 }}>
+                  <i className="fas fa-map-marker-alt me-2" style={{ color: 'var(--secondary)' }}></i>Find Us
+                </h5>
+                <div className="hrsrow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.09)' }}>
+                  <span className="hrsday" style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <i className="fas fa-location-dot me-2" style={{ color: 'var(--secondary)' }}></i>Address
+                  </span>
+                  <span className="hrstime" style={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>42 Flavor Street, NY</span>
+                </div>
+                <div className="hrsrow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.09)' }}>
+                  <span className="hrsday" style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <i className="fas fa-phone me-2" style={{ color: 'var(--secondary)' }}></i>Phone
+                  </span>
+                  <span className="hrstime" style={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>+1 (800) 123-4567</span>
+                </div>
+                <div className="hrsrow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: 'none' }}>
+                  <span className="hrsday" style={{ color: 'rgba(255, 255, 255, 0.78)', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <i className="fas fa-envelope me-2" style={{ color: 'var(--secondary)' }}></i>Email
+                  </span>
+                  <span className="hrstime" style={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>hello@sarabfood.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+         SPECIAL OFFER SECTION with Countdown Timer
+         ============================================================ */}
+     
+
+      <style>{`
+        @keyframes fltimg {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-17px); }
+        }
+        @keyframes plsbdg {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); box-shadow: 0 12px 34px rgba(232, 40, 26, 0.7); }
+        }
+        .timeline {
+          position: relative;
+          padding: 18px 0;
+        }
+        .timeline::before {
+          content: "";
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 2px;
+          background: linear-gradient(to bottom, var(--primary), var(--secondary));
+          top: 0;
+          bottom: 0;
+        }
+        .tli {
+          display: grid;
+          grid-template-columns: 1fr 36px 1fr;
+          margin-bottom: 50px;
+          align-items: start;
+        }
+        .tl-left {
+          padding-right: 32px;
+          text-align: right;
+        }
+        .tl-center {
+          display: flex;
+          justify-content: center;
+          padding-top: 5px;
+        }
+        .tl-right {
+          padding-left: 32px;
+          text-align: left;
+        }
+        .tli:nth-child(odd) .tl-right {
+          visibility: hidden;
+        }
+        .tli:nth-child(even) .tl-left {
+          visibility: hidden;
+        }
+        .tldot {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--primary);
+          border: 4px solid #fff;
+          box-shadow: 0 0 0 3px rgba(232, 40, 26, 0.3);
+          flex-shrink: 0;
+        }
+        .tlyear {
+          font-family: "Dancing Script", cursive;
+          color: var(--primary);
+          font-size: 1.15rem;
+          margin-bottom: 3px;
+        }
+        .tl-left h5, .tl-right h5 {
+          font-size: 1.05rem;
+          font-weight: 700;
+          margin-bottom: 7px;
+          font-family: "Playfair Display", serif;
+          color: var(--dark);
+        }
+        .tl-left p, .tl-right p {
+          font-size: 0.83rem;
+          color: #888;
+          line-height: 1.7;
+          margin: 0;
+        }
+        @media (max-width: 767px) {
+          .timeline::before {
+            left: 16px;
+          }
+          .tli {
+            grid-template-columns: 32px 1fr;
+            gap: 0;
+          }
+          .tl-left {
+            display: none;
+          }
+          .tl-right {
+            display: block !important;
+            visibility: visible !important;
+            padding-left: 18px;
+            text-align: left;
+          }
+          .tl-center {
+            padding-top: 5px;
+          }
+          .tli:nth-child(odd) .tl-right {
+            visibility: visible !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default HistoryHours;
+</file>
+
+<file path="frontend/src/components/layout/Navbar.jsx">
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useCart } from '../../context/CartContext'; 
+
+const Navbar = ({ onCartClick }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const { cartCount } = useCart();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 45) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Structural Smooth Scroll Anchor Handler Matrix
+  const handleSectionScroll = (sectionId) => {
+    setIsMobileMenuOpen(false);
+
+    // If the guest is away from the main home page (e.g., at checkout), navigate back first, then scroll
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollToSection: sectionId } });
+      return;
+    }
+
+    setTimeout(() => {
+      const targetElement = document.getElementById(sectionId);
+      if (targetElement) {
+        const navbarOffset = 100;
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - navbarOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  };
+
+  // Listen for redirection scrolls triggered from secondary routes
+  useEffect(() => {
+    if (location.pathname === '/' && location.state?.scrollToSection) {
+      setTimeout(() => {
+        const targetId = location.state.scrollToSection;
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          const navbarOffset = 100;
+          const elementPosition = targetElement.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - navbarOffset;
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+        window.history.replaceState({}, document.title);
+      }, 300);
+    }
+  }, [location]);
+
+  // Navigation items
+  const navItems = [
+    { id: 'hero-section', label: 'Home' },
+    { id: 'about-section', label: 'About' },
+    { id: 'menu-section', label: 'Menu' },
+    { id: 'history', label: 'History' },
+    { id: 'hours', label: 'Hours' },
+    { id: 'contact-section', label: 'Contact' }
+  ];
+
+  return (
+    <>
+      {/* Fixed Navbar */}
+      <nav 
+        id="nav" 
+        className={`navbar navbar-expand-lg px-4 py-3 transition-all ${isScrolled ? 'shadow-lg' : 'shadow-sm'}`}
+        style={{ 
+          borderRadius: '50px',
+          backgroundColor: '#2C4A3E',
+          border: '2px solid rgba(255, 255, 255, 0.15)',
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          position: 'fixed',
+          top: '16px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '1320px',
+          zIndex: 1050,
+          margin: 0
+        }}
+      >
+        <div className="container-fluid">
+          {/* Brand Logo Identity System */}
+          <Link 
+            to="/" 
+            className="navbar-brand blogo d-flex align-items-center text-decoration-none"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <div className="bico d-flex align-items-center justify-content-center text-white rounded-circle me-2" style={{ backgroundColor: '#FCFBF9', width: '38px', height: '38px' }}>
+              <i className="fa fa-utensils small" style={{ color: '#2C4A3E' }}></i>
+            </div>
+            <div className="bname text-start d-flex flex-column justify-content-center">
+              <span className="fw-black text-uppercase lh-1" style={{ fontFamily: '"Playfair Display", serif', color: '#FCFBF9', fontSize: '1.45rem', fontWeight: 900, letterSpacing: '1px' }}>
+                SARAB<span style={{ color: '#f6a623' }}>.</span>
+              </span>
+            </div>
+          </Link>
+
+          {/* User Control Interface Block Container */}
+          <div className="d-flex align-items-center gap-2 order-lg-last ms-auto ms-lg-3">
+            
+            {/* Basket Counter Trigger Anchor */}
+            <button 
+              onClick={onCartClick} 
+              className="btn position-relative d-flex align-items-center justify-content-center shadow-sm border-0 transition-all"
+              style={{ 
+                width: '45px', 
+                height: '45px', 
+                borderRadius: '50%', 
+                backgroundColor: '#f6a623',
+                color: '#2C4A3E',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+              title="Open Shopping Basket"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#e8950f';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#f6a623';
+              }}
+            >
+              <i className="fas fa-shopping-basket" style={{ fontSize: '1.1rem' }}></i>
+              
+              {cartCount > 0 && (
+                <span 
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill font-weight-bold"
+                  style={{ 
+                    fontSize: '0.72rem', 
+                    padding: '4px 7px',
+                    backgroundColor: '#f6a623',
+                    color: '#2C4A3E',
+                    border: '2px solid #FCFBF9'
+                  }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger Toggle */}
+            <button 
+              className="navbar-toggler d-lg-none border-0 ms-1" 
+              type="button" 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              style={{ height: '42px', width: '42px', backgroundColor: 'transparent', color: '#FCFBF9', outline: 'none' }}
+            >
+              <span className="fa fa-bars" style={{ fontSize: '1.3rem' }}></span>
+            </button>
+          </div>
+
+          {/* Interactive Core Links Component Pipeline */}
+          <div className={`collapse navbar-collapse ${isMobileMenuOpen ? 'show text-center py-3' : ''}`} id="navbarCollapse">
+            <div className="navbar-nav ms-auto py-0 gap-1">
+              {navItems.map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => handleSectionScroll(item.id)} 
+                  className="nav-link bg-transparent border-0 px-3 py-2 text-start-md"
+                  style={{ 
+                    fontWeight: 600, 
+                    color: '#FCFBF9',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    background: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#f6a623';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#FCFBF9';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </nav>
+      
+      {/* Spacer to prevent content from hiding under fixed navbar */}
+      <div style={{ height: '96px' }}></div>
+
+      <style>{`
+        @media (max-width: 992px) {
+          nav {
+            width: calc(100% - 32px) !important;
+            top: 12px !important;
+          }
+          .navbar-nav {
+            background: transparent;
+          }
+          .navbar-nav .nav-link {
+            padding: 12px 16px !important;
+            text-align: center;
+          }
+          .navbar-toggler:focus {
+            box-shadow: none;
+          }
+        }
+        .navbar-toggler {
+          outline: none;
+        }
+        .transition-all {
+          transition: all 0.3s ease;
+        }
+        body {
+          background: #fff8f0 !important;
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="frontend/src/components/Login.jsx">
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminUser', data.username);
+        navigate('/admin');
+      } else {
+        setError(data.message || 'Access Denied. Invalid credentials.');
+      }
+    } catch (err) {
+      setError('Connection failure with the authorization server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container py-5 d-flex align-items-center justify-content-center" style={{ minHeight: '75vh', background: 'var(--light)' }}>
+      <div style={{ 
+        maxWidth: '450px', 
+        width: '100%', 
+        background: '#fff', 
+        borderRadius: '18px',
+        boxShadow: 'var(--shadow-lg)',
+        padding: '40px'
+      }}>
+        <div className="text-center mb-4">
+          <div style={{
+            width: '70px',
+            height: '70px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--primary), #c01e12)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '16px',
+            boxShadow: '0 8px 20px rgba(232, 40, 26, 0.3)'
+          }}>
+            <i className="fas fa-lock fs-3" style={{ color: '#fff' }}></i>
+          </div>
+          <h3 style={{ 
+            fontFamily: "'Playfair Display', serif", 
+            fontWeight: 900, 
+            color: 'var(--dark)',
+            marginBottom: '8px',
+            fontSize: '1.75rem'
+          }}>Staff Gateway</h3>
+          <p style={{ color: '#888', fontSize: '0.85rem', fontFamily: "'Poppins', sans-serif" }}>Please verify credentials to access administrative views.</p>
+        </div>
+
+        {error && (
+          <div style={{
+            background: 'rgba(220, 53, 69, 0.1)',
+            color: '#dc3545',
+            padding: '10px',
+            borderRadius: '10px',
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: '20px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLoginSubmit}>
+          <div className="mb-3">
+            <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Username</label>
+            <input 
+              type="text" 
+              className="form-control" 
+              style={{ 
+                padding: '12px 16px', 
+                borderRadius: '12px', 
+                border: '1px solid #e0e0e0',
+                fontFamily: "'Poppins', sans-serif",
+                transition: 'all 0.3s ease'
+              }}
+              placeholder="Enter username" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)} 
+              required 
+            />
+          </div>
+          <div className="mb-4">
+            <label className="form-label fw-bold mb-2" style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>Password</label>
+            <input 
+              type="password" 
+              className="form-control" 
+              style={{ 
+                padding: '12px 16px', 
+                borderRadius: '12px', 
+                border: '1px solid #e0e0e0',
+                fontFamily: "'Poppins', sans-serif",
+                transition: 'all 0.3s ease'
+              }}
+              placeholder="••••••••••••" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
+            />
+          </div>
+          <button 
+            type="submit" 
+            className="btn w-100 py-3 fw-bold"
+            style={{
+              background: 'linear-gradient(135deg, var(--primary), #c01e12)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '50px',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              transition: 'all 0.3s ease',
+              cursor: 'pointer',
+              fontFamily: "'Poppins', sans-serif"
+            }}
+            disabled={loading}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(232, 40, 26, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" style={{ color: '#fff' }} role="status"></span>
+                Authenticating Gateway...
+              </>
+            ) : (
+              'Secure Authorization Login'
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+</file>
+
+<file path="frontend/src/components/Menu.jsx">
+import React, { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
+
+const Menu = () => {
+  const [menuData, setMenuData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [portionQty, setPortionQty] = useState(1);
+  
+  const { addToCart } = useCart();
+
+  const fetchMenuData = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/menu');
+      if (response.ok) {
+        const data = await response.json();
+        setMenuData(data);
+      }
+    } catch (err) {
+      console.error('Error fetching menu:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenuData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedItem) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [selectedItem]);
+
+  const filteredItems = activeFilter === 'all' 
+    ? menuData 
+    : menuData.filter(item => item.category === activeFilter);
+
+  const openModal = (item) => {
+    setSelectedItem(item);
+    setPortionQty(1);
+  };
+
+  const parsePrice = (priceStr) => {
+    if (typeof priceStr === 'number') return priceStr;
+    const cleaned = priceStr.replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  if (loading) {
+    return (
+      <div className="py-5 text-center bg-white d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-danger" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+        <p className="mt-3 text-muted fw-bold small text-uppercase" style={{ letterSpacing: '1px' }}>Loading Kitchen Catalog...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* FIXED: Changed id from "menu" to "menu-section" to match navbar */}
+      <section id="menu-section" className="py-5" style={{ background: '#f9f5f0' }}>
+        <div className="container">
+          
+          {/* Header Typography Stacks */}
+          <div className="text-center mb-5" data-aos="fade-up">
+            <span className="slbl" style={{ fontFamily: "'Dancing Script', cursive", fontSize: '1.35rem', color: '#e8281a', display: 'block', marginBottom: '4px' }}>What's Cooking</span>
+            <h2 className="stitle" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)', fontWeight: 900, lineHeight: 1.2, marginBottom: '12px' }}>
+              Our Delicious <span style={{ color: '#e8281a' }}>Menu</span>
+            </h2>
+            <div className="sline" style={{ width: '58px', height: '4px', borderRadius: '4px', background: 'linear-gradient(90deg, #e8281a, #f6a623)', margin: '0 auto 12px' }}></div>
+          </div>
+
+          {/* Interactive Navigation Filter Tab Buttons */}
+          <div className="text-center mb-4 flex-wrap d-flex justify-content-center gap-2" data-aos="fade-up">
+            {['all', 'burgers', 'pizza', 'chicken', 'wraps', 'desserts', 'pasta'].map((category) => (
+              <button 
+                key={category}
+                onClick={() => setActiveFilter(category)}
+                style={{
+                  border: activeFilter === category ? '2px solid #e8281a' : '2px solid #e5e5e5',
+                  background: activeFilter === category ? '#e8281a' : '#fff',
+                  color: activeFilter === category ? '#fff' : '#666',
+                  borderRadius: '50px',
+                  padding: '8px 20px',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  margin: '3px',
+                  fontFamily: "'Poppins', sans-serif"
+                }}
+                onMouseEnter={(e) => {
+                  if (activeFilter !== category) {
+                    e.target.style.background = '#e8281a';
+                    e.target.style.color = '#fff';
+                    e.target.style.borderColor = '#e8281a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeFilter !== category) {
+                    e.target.style.background = '#fff';
+                    e.target.style.color = '#666';
+                    e.target.style.borderColor = '#e5e5e5';
+                  }
+                }}
+              >
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Responsive Card Deck Display Grid Array */}
+          <div className="row g-4" id="mgrid">
+            {filteredItems.map((item, idx) => (
+              <div className="col-sm-6 col-lg-4" key={item.id || item._id} data-aos="fade-up" data-aos-delay={idx * 80}>
+                <div 
+                  className="mcard"
+                  onClick={() => openModal(item)}
+                  style={{
+                    background: '#fff',
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    transition: 'transform 0.4s ease, box-shadow 0.4s ease',
+                    boxShadow: '0 4px 22px rgba(0, 0, 0, 0.07)',
+                    cursor: 'pointer',
+                    height: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-9px)';
+                    e.currentTarget.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.13)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 22px rgba(0, 0, 0, 0.07)';
+                  }}
+                >
+                  <div className="mimg" style={{ position: 'relative', overflow: 'hidden', height: '215px', background: '#fef0dc' }}>
+                    <img 
+                      src={item.img} 
+                      alt={item.title} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.09)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      onError={(e) => {
+                        // Fixed: Simplified error handling to avoid infinite loop
+                        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
+                      }}
+                    />
+                    {item.badge && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '13px',
+                        left: '13px',
+                        background: item.badgeClass === 'hot' ? '#f6a623' : '#2d6a4f',
+                        color: item.badgeClass === 'hot' ? '#1a1a1a' : '#fff',
+                        borderRadius: '7px',
+                        padding: '3px 11px',
+                        fontSize: '0.7rem',
+                        fontWeight: 700
+                      }}>
+                        <i className="fas fa-star" style={{ marginRight: '4px', fontSize: '0.65rem' }}></i> {item.badge}
+                      </div>
+                    )}
+                    <div className="mhrt" style={{
+                      position: 'absolute',
+                      top: '13px',
+                      right: '13px',
+                      width: '33px',
+                      height: '33px',
+                      borderRadius: '50%',
+                      background: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ccc',
+                      cursor: 'pointer',
+                      transition: '0.3s',
+                      boxShadow: '0 2px 9px rgba(0, 0, 0, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#e8281a';
+                      e.currentTarget.style.transform = 'scale(1.18)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = '#ccc';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    onClick={(e) => e.stopPropagation()}>
+                      <i className="far fa-heart"></i>
+                    </div>
+                  </div>
+                  
+                  <div className="mbody" style={{ padding: '18px' }}>
+                    <div className="mcat" style={{ fontSize: '0.7rem', fontWeight: 600, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '5px' }}>
+                      {item.displayCategory || item.category}
+                    </div>
+                    <div className="mtit" style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '5px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
+                      {item.title}
+                    </div>
+                    <div className="mdesc" style={{ fontSize: '0.78rem', color: '#aaa', marginBottom: '13px', lineHeight: 1.5 }}>
+                      {item.shortDesc}
+                    </div>
+                    <div className="mfoot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div className="mprice" style={{ fontSize: '1.25rem', fontWeight: 800, color: '#e8281a', fontFamily: "'Playfair Display', serif" }}>
+                          {item.price}
+                          {item.oldPrice && <small style={{ fontSize: '0.72rem', fontWeight: 400, color: '#ccc', textDecoration: 'line-through', marginLeft: '5px' }}>{item.oldPrice}</small>}
+                        </div>
+                        <div className="mstars" style={{ fontSize: '0.73rem', color: '#f6a623' }}>
+                          <i className="fas fa-star"></i>
+                          <span style={{ color: '#bbb', fontSize: '.7rem', marginLeft: '4px' }}>({item.reviews || 0})</span>
+                        </div>
+                      </div>
+                      <button 
+                        className="madd" 
+                        title="View Details"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #e8281a, #c01e12)',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'transform 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15) rotate(90deg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1) rotate(0)'}
+                        onClick={(e) => {
+                          e.stopPropagation(); 
+                          openModal(item);
+                        }}
+                      >
+                        <i className="fas fa-plus"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Dynamic Pop-up Details Card Modal Overlay - Same as before, keep it */}
+      {selectedItem && (
+        <div id="menuPop" onClick={() => setSelectedItem(null)} style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.84)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '18px'
+        }}>
+          <div className="mpbox" onClick={(e) => e.stopPropagation()} style={{
+            background: '#fff',
+            borderRadius: '22px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '88vh',
+            overflowY: 'auto',
+            position: 'relative',
+            display: 'flex',
+            flexWrap: 'wrap'
+          }}>
+            <button className="mpclose" onClick={() => setSelectedItem(null)} style={{
+              position: 'absolute',
+              top: '14px',
+              right: '14px',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: '#f2f2f2',
+              border: 'none',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: '0.3s',
+              zIndex: 2
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#f2f2f2'; e.currentTarget.style.color = '#000'; }}>
+              <i className="fas fa-times"></i>
+            </button>
+            
+            <div className="mpimg" style={{
+              width: '44%',
+              background: '#fef0dc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '22px 0 0 22px',
+              overflow: 'hidden',
+              minHeight: '400px'
+            }}>
+              <img 
+                src={selectedItem.img} 
+                alt={selectedItem.title} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop'; }}
+              />
+            </div>
+            
+            <div className="mpbody" style={{ width: '56%', padding: '34px 30px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f6a623', textTransform: 'uppercase', letterSpacing: '1.3px', marginBottom: '7px' }}>
+                {selectedItem.displayCategory || selectedItem.category}
+              </div>
+              <div style={{ fontSize: '1.7rem', fontWeight: 900, marginBottom: '9px', fontFamily: "'Playfair Display', serif", color: '#1a1a1a' }}>
+                {selectedItem.title}
+              </div>
+              
+              <div style={{ color: '#f6a623', fontSize: '0.88rem', marginBottom: '14px' }}>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <i className="fas fa-star"></i>
+                <span style={{ color: '#bbb', fontSize: '.78rem', marginLeft: '8px' }}>{selectedItem.rating || "5.0"} ({selectedItem.reviews || 0} reviews)</span>
+              </div>
+              
+              <div style={{ fontSize: '0.88rem', color: '#777', lineHeight: 1.8, marginBottom: '18px' }}>
+                {selectedItem.longDesc || selectedItem.shortDesc}
+              </div>
+              
+              <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#e8281a', marginBottom: '14px', fontFamily: "'Playfair Display', serif" }}>
+                {selectedItem.price}
+                {selectedItem.oldPrice && <small style={{ fontSize: '0.95rem', color: '#ccc', textDecoration: 'line-through', marginLeft: '7px' }}>{selectedItem.oldPrice}</small>}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.calories || "420"} kcal</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Calories</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.prepTime || "15"} min</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Prep Time</div>
+                </div>
+                <div style={{ textAlign: 'center', background: '#f9f5f0', borderRadius: '9px', padding: '9px 14px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#1a1a1a' }}>{selectedItem.rating || "5.0"}/5</div>
+                  <div style={{ fontSize: '0.68rem', color: '#bbb' }}>Rating</div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '18px' }}>
+                <button 
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    border: '2px solid #e8281a',
+                    background: 'transparent',
+                    color: '#e8281a',
+                    fontSize: '1.05rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: '0.3s',
+                    fontWeight: 700
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
+                  onClick={() => portionQty > 1 && setPortionQty(portionQty - 1)}
+                >
+                  -
+                </button>
+                <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1a1a1a', minWidth: '30px', textAlign: 'center' }}>{portionQty}</span>
+                <button 
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    border: '2px solid #e8281a',
+                    background: 'transparent',
+                    color: '#e8281a',
+                    fontSize: '1.05rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: '0.3s',
+                    fontWeight: 700
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#e8281a'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e8281a'; }}
+                  onClick={() => setPortionQty(portionQty + 1)}
+                >
+                  +
+                </button>
+                <span style={{ fontSize: '.82rem', color: '#aaa', marginLeft: '9px' }}>portion(s)</span>
+              </div>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '20px' }}>
+                {(selectedItem.tags || ["Fresh", "Chef's Choice", "Popular"]).map((tag, idx) => (
+                  <span key={idx} style={{ background: 'rgba(246, 166, 35, 0.11)', color: '#1a1a1a', borderRadius: '20px', padding: '3px 11px', fontSize: '0.73rem', fontWeight: 600 }}>
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+              
+              <button 
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #e8281a, #c01e12)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  fontSize: '0.96rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontFamily: "'Poppins', sans-serif",
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '9px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                onClick={() => {
+                  const cartItem = {
+                    ...selectedItem,
+                    price: parsePrice(selectedItem.price),
+                    id: selectedItem.id || selectedItem._id
+                  };
+                  addToCart(cartItem, portionQty);
+                  setSelectedItem(null);
+                }}
+              >
+                <i className="fas fa-shopping-cart"></i> Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width: 991px) {
+          .mpimg {
+            width: 100% !important;
+            border-radius: 22px 22px 0 0 !important;
+            min-height: 240px !important;
+          }
+          .mpbody {
+            width: 100% !important;
+            padding: 22px 18px !important;
+          }
+        }
+        @keyframes modalScaleUp {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        .mpbox {
+          animation: modalScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+    </>
+  );
+};
+
+export default Menu;
+</file>
+
+<file path="frontend/src/context/CartContext.jsx">
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+const CartContext = createContext();
+
+export const CartProvider = ({ children }) => {
+  const [cart, setCart] = useState(() => {
+    const storedCart = localStorage.getItem('sarab_cart');
+    return storedCart ? JSON.parse(storedCart) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sarab_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Helper function to safely parse price to number
+  const parsePriceToNumber = (price) => {
+    if (typeof price === 'number') return price;
+    if (typeof price === 'string') {
+      // Remove $ sign and any other non-numeric characters except decimal
+      const cleaned = price.replace(/[^0-9.-]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
+  const addToCart = (item, quantity) => {
+    setCart((prevCart) => {
+      const existingItemIndex = prevCart.findIndex((cartItem) => cartItem.id === item.id);
+      
+      // Safely parse the price
+      const numericPrice = parsePriceToNumber(item.price);
+      
+      if (existingItemIndex > -1) {
+        const newCart = [...prevCart];
+        newCart[existingItemIndex].quantity += quantity;
+        return newCart;
+      }
+      
+      return [...prevCart, { 
+        id: item.id, 
+        title: item.title, 
+        price: numericPrice, 
+        img: item.img,
+        quantity 
+      }];
+    });
+  };
+
+  const updateQuantity = (itemId, amount) => {
+    setCart((prevCart) =>
+      prevCart
+        .map((item) => (item.id === itemId ? { ...item, quantity: amount } : item))
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const removeFromCart = (itemId) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
+  };
+
+  const clearCart = () => setCart([]);
+
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+
+  return (
+    <CartContext.Provider value={{ cart, addToCart, updateQuantity, removeFromCart, clearCart, cartCount, cartTotal }}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = () => useContext(CartContext);
+</file>
+
+<file path="frontend/src/index.css">
+/* Set global body background to cream */
+body {
+  background: #fff8f0 !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure root element has same background */
+#root {
+  background: #fff8f0;
+  min-height: 100vh;
+}
+/*==================================================
+                    HERO SECTION
+==================================================*/
+
+.hero-section {
+    background: #fff;
+    overflow: hidden;
+    padding: 80px 0;
+}
+
+.hero-title {
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #0F172B;
+    margin-bottom: 25px;
+}
+
+.hero-title span {
+    color: #FEA116;
+}
+
+.hero-desc {
+    font-size: 18px;
+    line-height: 1.8;
+    color: #666;
+    max-width: 550px;
+    margin-bottom: 35px;
+}
+
+.hero-btn {
+    background: #FEA116;
+    color: #fff;
+    border: none;
+    padding: 15px 45px;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: 600;
+    transition: all .4s ease;
+}
+
+.hero-btn:hover {
+    background: #d88a0b;
+    transform: translateY(-4px);
+}
+
+.hero-image-wrapper {
+    position: relative;
+    width: 620px;
+    height: 620px;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero-bg-circle {
+    position: absolute;
+    width: 540px;
+    height: 540px;
+    border-radius: 50%;
+    background: rgba(254, 161, 22, .08);
+}
+
+.hero-food-image {
+    width: 500px;
+    height: 500px;
+    object-fit: cover;
+    border-radius: 50%;
+    position: relative;
+    z-index: 10;
+    background: #fff;
+    padding: 15px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, .12);
+}
+
+.hero-tag {
+    position: absolute;
+    background: #fff;
+    padding: 12px 22px;
+    border-radius: 50px;
+    font-weight: 600;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, .08);
+    z-index: 20;
+    animation: floating 3s ease-in-out infinite;
+}
+
+.tag1 {
+    top: 40px;
+    left: 10px;
+}
+
+.tag2 {
+    top: 120px;
+    right: -20px;
+    animation-delay: .5s;
+}
+
+.tag3 {
+    bottom: 120px;
+    left: -20px;
+    animation-delay: 1s;
+}
+
+.tag4 {
+    bottom: 50px;
+    right: 40px;
+    animation-delay: 1.5s;
+}
+
+.tag5 {
+    top: 280px;
+    right: -60px;
+    animation-delay: 2s;
+}
+
+@keyframes floating {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+
+/*==================================================
+                    ABOUT SECTION
+==================================================*/
+
+#about-section {
+    padding: 100px 0;
+}
+
+.section-title {
+    position: relative;
+    display: inline-block;
+    font-family: 'Pacifico', cursive;
+    color: #FEA116 !important;
+}
+
+.section-title::after {
+    position: absolute;
+    content: "";
+    width: 60px;
+    height: 2px;
+    top: 50%;
+    margin-left: 15px;
+    background: #FEA116;
+}
+
+#about-section img {
+    border-radius: 10px;
+    transition: all .5s ease;
+}
+
+#about-section img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 20px 40px rgba(0,0,0,.12);
+}
+
+#about-section h1 {
+    color: #0F172B;
+    font-weight: 800;
+}
+
+#about-section p {
+    color: #666;
+    line-height: 1.9;
+    font-size: 16px;
+}
+
+#about-section .border-primary {
+    border-color: #FEA116 !important;
+}
+
+#about-section .text-primary {
+    color: #FEA116 !important;
+}
+
+#about-section .display-5 {
+    font-weight: 800;
+}
+
+/*==================================
+        SERVICES SECTION
+===================================*/
+
+#categories-section {
+    padding: 100px 0;
+}
+
+.service-item {
+    background: #fff;
+    box-shadow: 0 0 45px rgba(0, 0, 0, .08);
+    transition: .5s;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.service-icon {
+    transition: .5s;
+}
+
+.service-title {
+    color: #0F172B;
+    font-weight: 700;
+    transition: .5s;
+}
+
+.service-desc {
+    color: #666;
+    line-height: 1.7;
+    transition: .5s;
+}
+
+.service-item:hover {
+    background: #FEA116;
+    transform: translateY(-10px);
+}
+
+.service-item:hover .service-icon,
+.service-item:hover .service-title,
+.service-item:hover .service-desc {
+    color: #FFFFFF !important;
+}
+
+/*=============================
+        RESPONSIVE
+=============================*/
+
+@media(max-width:768px){
+
+    .service-item{
+        text-align:center;
+    }
+
+}
+/*==================================================
+                    RESPONSIVE
+==================================================*/
+
+@media (max-width: 992px) {
+
+    .hero-title {
+        font-size: 3rem;
+        text-align: center;
+    }
+
+    .hero-desc {
+        text-align: center;
+        margin: auto;
+    }
+
+    .hero-btn {
+        display: block;
+        margin: auto;
+    }
+
+    .hero-image-wrapper {
+        width: 420px;
+        height: 420px;
+        margin-top: 60px;
+    }
+
+    .hero-bg-circle {
+        width: 360px;
+        height: 360px;
+    }
+
+    .hero-food-image {
+        width: 320px;
+        height: 320px;
+    }
+
+    .hero-tag {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    .tag1 {
+        top: 0;
+        left: 20px;
+    }
+
+    .tag2 {
+        top: 60px;
+        right: 0;
+    }
+
+    .tag3 {
+        bottom: 60px;
+        left: 0;
+    }
+
+    .tag4 {
+        bottom: 0;
+        right: 20px;
+    }
+
+    .tag5 {
+        top: 180px;
+        right: -10px;
+    }
+
+    #about-section {
+        text-align: center;
+    }
+}
+
+@media (max-width: 576px) {
+
+    .hero-title {
+        font-size: 2.3rem;
+    }
+
+    .hero-image-wrapper {
+        width: 300px;
+        height: 300px;
+    }
+
+    .hero-food-image {
+        width: 240px;
+        height: 240px;
+    }
+
+    .hero-bg-circle {
+        width: 260px;
+        height: 260px;
+    }
+
+    .hero-tag {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .section-title::after {
+        display: none;
+    }
+}
+</file>
+
+<file path="frontend/src/main.jsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import { CartProvider } from './context/CartContext.jsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <CartProvider>
+      <App />
+    </CartProvider>
+  </React.StrictMode>
+);
+</file>
+
+<file path="frontend/vite.config.js">
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 3000, // Running on port 3000 for standard frontend dev matching
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000', // Points to our upcoming Express backend
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+});
+</file>
+
+<file path="package.json">
+
+</file>
+
+</files>
