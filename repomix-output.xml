@@ -471,40 +471,6 @@ router.patch('/:id', protectAdmin, async (req, res) => {
 export default router;
 </file>
 
-<file path="backend/server.js">
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import connectDB from './config/db.js';
-import menuRoutes from './routes/menuRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-dotenv.config();
-
-
-import dns from "node:dns/promises";   
-dns.setServers(["1.1.1.1", "1.0.0.1"]); 
-// Spin up express container instance 
-const app = express();
-
-// Middleware parameters
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
-app.use(express.json()); // Essential body parsing parser rule
-
-// Connection state execution
-connectDB();
-
-// Explicit routing layer bindings
-app.use('/api/menu', menuRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/auth', authRoutes);
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Sarab Restaurant API Server actively serving on port: ${PORT}`));
-</file>
-
 <file path="frontend/eslint.config.js">
 import js from '@eslint/js'
 import globals from 'globals'
@@ -610,18 +576,6 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-</file>
-
-<file path="frontend/src/api/axios.js">
-import axios from 'axios';
-
-const API = axios.create({
-  // Combines your live backend domain with the api route path
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}` : 'http://localhost:5000',
-  withCredentials: true
-});
-
-export default API;
 </file>
 
 <file path="frontend/src/App.css">
@@ -3732,6 +3686,44 @@ export default defineConfig({
 });
 </file>
 
+<file path="backend/server.js">
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import connectDB from './config/db.js';
+import menuRoutes from './routes/menuRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+dotenv.config();
+
+
+import dns from "node:dns/promises";   
+dns.setServers(["1.1.1.1", "1.0.0.1"]); 
+// Spin up express container instance 
+const app = express();
+
+// Middleware parameters
+// Update the CORS middleware
+app.use(cors({
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://sarab-86ft.onrender.com'  // Add your frontend URL explicitly
+  ],
+  credentials: true
+}));
+app.use(express.json()); // Essential body parsing parser rule
+
+// Connection state execution
+connectDB();
+
+// Explicit routing layer bindings
+app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/auth', authRoutes);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Sarab Restaurant API Server actively serving on port: ${PORT}`));
+</file>
+
 <file path="frontend/index.html">
 <!DOCTYPE html>
 <html lang="en">
@@ -3763,6 +3755,35 @@ export default defineConfig({
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+</file>
+
+<file path="frontend/src/api/axios.js">
+import axios from 'axios';
+
+const API = axios.create({
+  // Include /api in the baseURL
+  baseURL: import.meta.env.VITE_API_URL 
+    ? `${import.meta.env.VITE_API_URL}/api` 
+    : 'http://localhost:5000/api',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Add request interceptor to include auth token
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export default API;
 </file>
 
 <file path="frontend/src/components/AdminDashboard.jsx">

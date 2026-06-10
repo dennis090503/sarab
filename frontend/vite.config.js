@@ -11,12 +11,23 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000, // Running on port 3000 for standard frontend dev matching
+    port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Points to our upcoming Express backend
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+      },
+    },
+  },
+  // Add this for production build
+  base: '/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
       },
     },
   },
