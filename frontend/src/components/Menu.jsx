@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import API from '../api/axios.js';
+
 const Menu = () => {
   const [menuData, setMenuData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,43 +11,31 @@ const Menu = () => {
   
   const { addToCart } = useCart();
 
-  const fetchMenuData = async () => {
-    try {
-      // This sends a request to VITE_API_BASE_URL + '/api/menu'
-      const response = await API.get('/api/menu');
-      
-      // Axios puts the parsed JSON automatically into response.data
-      if (response.data) {
-        setMenuData(response.data);
-      }
-    } catch (err) {
-      console.error('Error fetching menu:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Consolidated Single Unified Fetch with Array Type-Safety Guards
+  useEffect(() => {
+    API.get('/api/menu')
+      .then((res) => {
+        let menuArray = [];
+        
+        // 🛡️ SAFETY CHECK: Extract the array safely no matter how the backend formats it
+        if (Array.isArray(res.data)) {
+          menuArray = res.data;
+        } else if (res.data && Array.isArray(res.data.menu)) {
+          menuArray = res.data.menu;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          menuArray = res.data.data;
+        }
 
- useEffect(() => {
-  API.get('/api/menu')
-    .then((res) => {
-      // 🛡️ SAFETY CHECK: Extract the array safely no matter how the backend formats it
-      let menuArray = [];
-      
-      if (Array.isArray(res.data)) {
-        menuArray = res.data;
-      } else if (res.data && Array.isArray(res.data.menu)) {
-        menuArray = res.data.menu;
-      } else if (res.data && Array.isArray(res.data.data)) {
-        menuArray = res.data.data;
-      }
-
-      setMenuItems(menuArray);
-    })
-    .catch((err) => {
-      console.error("Failed to load menu items:", err);
-      setMenuItems([]); // 🛡️ Force fallback to empty array so .map() never crashes
-    });
-}, []);
+        setMenuData(menuArray); // FIXED: Correctly targets menuData state variable
+      })
+      .catch((err) => {
+        console.error("Failed to load menu items:", err);
+        setMenuData([]); // 🛡️ Force fallback to empty array so .map() loop never crashes
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     if (selectedItem) {
@@ -169,7 +158,6 @@ const Menu = () => {
                       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.09)'}
                       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                       onError={(e) => {
-                        // Fixed: Simplified error handling to avoid infinite loop
                         e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop';
                       }}
                     />
@@ -273,7 +261,7 @@ const Menu = () => {
         </div>
       </section>
 
-      {/* Dynamic Pop-up Details Card Modal Overlay - Same as before, keep it */}
+      {/* Dynamic Pop-up Details Card Modal Overlay */}
       {selectedItem && (
         <div id="menuPop" onClick={() => setSelectedItem(null)} style={{
           position: 'fixed',
@@ -457,12 +445,12 @@ const Menu = () => {
                   gap: '9px'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
+                  mix.currentTarget.style.transform = 'translateY(-3px)';
+                  mix.currentTarget.style.boxShadow = '0 10px 28px rgba(232, 40, 26, 0.38)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  mix.currentTarget.style.transform = 'translateY(0)';
+                  mix.currentTarget.style.boxShadow = 'none';
                 }}
                 onClick={() => {
                   const cartItem = {
