@@ -21,12 +21,20 @@ const AdminDashboard = () => {
 
   const fetchOrders = async (isFirstLoad = false) => {
     try {
-      // SWAPPED: Replaced native fetch with environment-variable-aware Axios client
       const response = await API.get('/api/orders');
-      const data = response.data;
+      
+      // DEFENSIVE CHECKS: Extract array safely regardless of backend wrapping structure
+      let dataArray = [];
+      if (Array.isArray(response.data)) {
+        dataArray = response.data;
+      } else if (response.data && Array.isArray(response.data.orders)) {
+        dataArray = response.data.orders;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      }
 
-      if (!isFirstLoad && previousOrdersCountRef.current !== null && data.length > previousOrdersCountRef.current) {
-        const latestOrder = data[0];
+      if (!isFirstLoad && previousOrdersCountRef.current !== null && dataArray.length > previousOrdersCountRef.current) {
+        const latestOrder = dataArray[0];
         setNewOrderAlert(latestOrder);
         notificationAudio.play().catch(err => console.log("Audio autoplay error: ", err));
         setTimeout(() => {
@@ -34,11 +42,10 @@ const AdminDashboard = () => {
         }, 8000);
       }
 
-      setOrders(data);
-      previousOrdersCountRef.current = data.length;
+      setOrders(dataArray); // Safeguards map against crashes
+      previousOrdersCountRef.current = dataArray.length;
     } catch (err) {
       console.error('Error fetching orders:', err);
-      // Catch unauthorized workflows or expired tokens automatically handled by interceptors/responses
       if (err.response?.status === 401) {
         handleLogout();
       }
